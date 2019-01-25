@@ -1,0 +1,34 @@
+Manifest-Version: 1.0
+Bnd-LastModified: 1444749841201
+Build-Jdk: 1.8.0
+Built-By: pauls
+Bundle-Description: OSGi R6 framework implementation.
+Bundle-DocURL: http://www.apache.org/
+Bundle-License: http://www.apache.org/licenses/LICENSE-2.0.txt
+Bundle-ManifestVersion: 2
+Bundle-Name: Apache Felix Framework
+Bundle-SymbolicName: org.apache.felix.framework
+Bundle-Vendor: The Apache Software Foundation
+Bundle-Version: 5.4.0.jahia1-SNAPSHOT
+Created-By: Apache Maven Bundle Plugin
+Export-Package: org.osgi.framework;version="1.8",org.osgi.framework.dto;
+ version="1.8";uses:="org.osgi.dto",org.osgi.framework.hooks.bundle;vers
+ ion="1.1";uses:="org.osgi.framework",org.osgi.framework.hooks.resolver;
+ version="1.0";uses:="org.osgi.framework.wiring",org.osgi.framework.hook
+ s.service;version="1.1";uses:="org.osgi.framework",org.osgi.framework.h
+ ooks.weaving;version="1.1";uses:="org.osgi.framework.wiring",org.osgi.f
+ ramework.launch;version="1.2";uses:="org.osgi.framework",org.osgi.frame
+ work.namespace;version="1.1";uses:="org.osgi.resource",org.osgi.framewo
+ rk.startlevel;version="1.0";uses:="org.osgi.framework",org.osgi.framewo
+ rk.startlevel.dto;version="1.0";uses:="org.osgi.dto",org.osgi.framework
+ .wiring;version="1.2";uses:="org.osgi.framework,org.osgi.resource",org.
+ osgi.framework.wiring.dto;version="1.2";uses:="org.osgi.dto,org.osgi.re
+ source.dto",org.osgi.resource;version="1.0",org.osgi.resource.dto;versi
+ on="1.0";uses:="org.osgi.dto",org.osgi.service.packageadmin;version="1.
+ 2";uses:="org.osgi.framework",org.osgi.service.startlevel;version="1.1"
+ ;uses:="org.osgi.framework",org.osgi.service.url;version="1.0",org.osgi
+ .service.resolver;version="1.0";uses:="org.osgi.resource",org.osgi.util
+ .tracker;version="1.5.1";uses:="org.osgi.framework",org.osgi.dto;versio
+ n="1.0"
+Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.6))"
+Tool: Bnd-2.3.0.201405100607

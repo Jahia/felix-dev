@@ -23,107 +23,54 @@
     <version>3</version>
     <relativePath>../pom/pom.xml</relativePath>
   </parent>
-  <modelVersion>4.0.0</modelVersion>
-  <packaging>bundle</packaging>
-  <name>Apache Felix Framework</name>
-  <artifactId>org.apache.felix.framework</artifactId>
-  <version>5.4.0</version>
-  <properties>
-    <dollar>$</dollar>
-    <felix.java.version>6</felix.java.version>
-  </properties>
-  <scm>
+  
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>org.apache.felix.framework</artifactId>
+    <name>Apache Felix Framework patches</name>
+    <packaging>jar</packaging>
+
+    <properties>
+        <sourceArtifact.groupId>org.apache.felix</sourceArtifact.groupId>
+        <sourceArtifact.artifactId>org.apache.felix.framework</sourceArtifact.artifactId>
+        <sourceArtifact.version>5.4.0</sourceArtifact.version>
+        <jahia.patch.version>jahia1-SNAPSHOT</jahia.patch.version>
+        <dollar>$</dollar>
+        <felix.java.version>6</felix.java.version>
+    </properties>
+
+    <scm>
       <connection>scm:svn:http://svn.apache.org/repos/asf/felix/releases/org.apache.felix.framework-5.4.0</connection>
       <developerConnection>scm:svn:https://svn.apache.org/repos/asf/felix/releases/org.apache.felix.framework-5.4.0</developerConnection>
       <url>scm:svn:https://svn.apache.org/repos/asf/felix/releases/org.apache.felix.framework-5.4.0</url>
-  </scm>
+    </scm>
 
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.felix</groupId>
-        <artifactId>maven-bundle-plugin</artifactId>
-        <version>2.5.0</version>
-        <extensions>true</extensions>
-        <configuration>
-          <instructions>
-            <Bundle-SymbolicName>org.apache.felix.framework</Bundle-SymbolicName>
-            <Bundle-Name>Apache Felix Framework</Bundle-Name>
-            <Bundle-Description>OSGi R6 framework implementation.</Bundle-Description>
-            <Bundle-Vendor>The Apache Software Foundation</Bundle-Vendor>
-            <Export-Package>
-                org.osgi.framework.*;-split-package:=merge-first,
-                org.osgi.resource;-split-package:=first,
-                org.osgi.resource.dto;-split-package:=first,                
-                org.osgi.service.packageadmin;-split-package:=first,
-                org.osgi.service.startlevel;-split-package:=first,
-	            org.osgi.service.url;-split-package:=first,
-                org.osgi.service.resolver,
-                org.osgi.util.tracker;-split-package:=first,
-                org.osgi.dto
-            </Export-Package>
-            <Private-Package>org.apache.felix.framework.*, org.apache.felix.resolver.*</Private-Package>
-            <Import-Package>!*</Import-Package>
-          </instructions>
-        </configuration>
-      </plugin>
-      <plugin>
-          <groupId>org.apache.rat</groupId>
-          <artifactId>apache-rat-plugin</artifactId>
-          <executions>
-              <execution>
-                  <phase>verify</phase>
-                  <goals>
-                      <goal>check</goal>
-                  </goals>
-              </execution>
-          </executions>
-          <configuration>
-              <includes>
-                  <include>src/**</include>
-              </includes>
-              <excludes>
-                  <exclude>src/main/appended-resources/**</exclude>
-                  <exclude>src/**/packageinfo</exclude>
-                  <exclude>src/main/resources/META-INF/services/org.osgi.framework.launch.FrameworkFactory</exclude>
-                  <exclude>src/main/resources/org/apache/felix/framework/Felix.properties</exclude>
-              </excludes>
-            </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-source-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>attach-sources</id>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-javadoc-plugin</artifactId>
-            <configuration>
-                <failOnError>false</failOnError>
-            </configuration>
-      </plugin>
-    </plugins>
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-        <filtering>true</filtering>
-      </resource>
-    </resources>
-  </build>
-  <dependencies>
-    <dependency>
-       <groupId>org.osgi</groupId>
-       <artifactId>org.osgi.annotation</artifactId>
-       <version>6.0.0</version>
-       <scope>provided</scope>
-    </dependency>
+    <repositories>
+        <repository>
+            <id>jahia-public</id>
+            <name>Jahia Public Repository</name>
+            <url>https://devtools.jahia.com/nexus/content/groups/public</url>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+        	<groupId>${sourceArtifact.groupId}</groupId>
+        	<artifactId>${sourceArtifact.artifactId}</artifactId>
+        	<version>${sourceArtifact.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.annotation</artifactId>
+            <version>6.0.0</version>
+            <scope>provided</scope>
+        </dependency>
     <dependency>
        <groupId>org.apache.felix</groupId>
        <artifactId>org.apache.felix.resolver</artifactId>
@@ -136,5 +83,160 @@
         <version>4.2</version>
         <scope>test</scope>
     </dependency>
-  </dependencies>
+    </dependencies>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.3.2</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.1</version>
+                <executions>
+                    <execution>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>${sourceArtifact.groupId}</groupId>
+                                    <artifactId>${sourceArtifact.artifactId}</artifactId>
+                                    <version>${sourceArtifact.version}</version>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>${sourceArtifact.groupId}</groupId>
+                                    <artifactId>${sourceArtifact.artifactId}</artifactId>
+                                    <version>${sourceArtifact.version}</version>
+                                    <type>jar</type>
+                                    <classifier>sources</classifier>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>1.6</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<configuration>
+							<tasks>
+                                <jar destfile="${project.build.directory}/${sourceArtifact.artifactId}-${sourceArtifact.version}-${jahia.patch.version}.jar">
+                                    <zipfileset src="${project.build.directory}/${sourceArtifact.artifactId}-${sourceArtifact.version}.jar" excludes="**/Artifact.class"/>
+                                </jar>
+								<jar destfile="${project.build.directory}/${sourceArtifact.artifactId}-${sourceArtifact.version}-${jahia.patch.version}.jar"
+									update="true" basedir="${project.build.directory}/classes" manifest="${project.build.directory}/classes/META-INF/MANIFEST.MF"/>
+									
+								<jar destfile="${project.build.directory}/${sourceArtifact.artifactId}-${sourceArtifact.version}-${jahia.patch.version}-sources.jar">
+                                    <zipfileset src="${project.build.directory}/${sourceArtifact.artifactId}-${sourceArtifact.version}-sources.jar" excludes="**/Artifact.java"/>
+                                </jar>
+								<jar destfile="${project.build.directory}/${sourceArtifact.artifactId}-${sourceArtifact.version}-${jahia.patch.version}-sources.jar"
+									update="true" basedir="${basedir}/src/main/java"/>
+							</tasks>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-install-plugin</artifactId>
+				<version>2.3.1</version>
+				<executions>
+					<execution>
+						<phase>install</phase>
+						<configuration>
+							<file>${project.build.directory}/${sourceArtifact.artifactId}-${sourceArtifact.version}-${jahia.patch.version}.jar</file>
+							<pomFile>${project.build.directory}/classes/META-INF/maven/${sourceArtifact.groupId}/${sourceArtifact.artifactId}/pom.xml</pomFile>
+							<sources>${project.build.directory}/${sourceArtifact.artifactId}-${sourceArtifact.version}-${jahia.patch.version}-sources.jar</sources>
+							<packaging>jar</packaging>
+						</configuration>
+						<goals>
+							<goal>install-file</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+        </plugins>
+    </build>
+    
+    <profiles>
+    	<profile>
+    		<id>deploy-artifacts-releases</id>
+    		<build>
+    			<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-deploy-plugin</artifactId>
+						<version>2.7</version>
+						<executions>
+							<execution>
+								<phase>install</phase>
+								<configuration>
+									<url>https://devtools.jahia.com/nexus/content/repositories/thirdparty-releases</url>
+									<repositoryId>thirdparty-releases</repositoryId>
+									<file>${project.build.directory}/${sourceArtifact.artifactId}-${sourceArtifact.version}-${jahia.patch.version}.jar</file>
+									<pomFile>${project.build.directory}/classes/META-INF/maven/${sourceArtifact.groupId}/${sourceArtifact.artifactId}/pom.xml</pomFile>
+									<sources>${project.build.directory}/${sourceArtifact.artifactId}-${sourceArtifact.version}-${jahia.patch.version}-sources.jar</sources>
+									<packaging>jar</packaging>
+								</configuration>
+								<goals>
+									<goal>deploy-file</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+    			</plugins>
+    		</build>
+    	</profile>
+        <profile>
+            <id>deploy-artifacts-snapshots</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <version>2.7</version>
+                        <executions>
+                            <execution>
+                                <phase>install</phase>
+                                <configuration>
+                                    <url>https://devtools.jahia.com/nexus/content/repositories/thirdparty-snapshots</url>
+                                    <repositoryId>thirdparty-snapshots</repositoryId>
+                                    <file>${project.build.directory}/${sourceArtifact.artifactId}-${sourceArtifact.version}-${jahia.patch.version}.jar</file>
+                                    <pomFile>${project.build.directory}/classes/META-INF/maven/${sourceArtifact.groupId}/${sourceArtifact.artifactId}/pom.xml</pomFile>
+                                    <sources>${project.build.directory}/${sourceArtifact.artifactId}-${sourceArtifact.version}-${jahia.patch.version}-sources.jar</sources>
+                                    <packaging>jar</packaging>
+                                </configuration>
+                                <goals>
+                                    <goal>deploy-file</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+    
 </project>
