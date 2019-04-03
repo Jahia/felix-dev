@@ -9,7 +9,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: Apache Felix Framework
 Bundle-SymbolicName: org.apache.felix.framework
 Bundle-Vendor: The Apache Software Foundation
-Bundle-Version: 5.4.0.jahia1
+Bundle-Version: 5.4.0.jahia2-SNAPSHOT
 Created-By: Apache Maven Bundle Plugin
 Export-Package: org.osgi.framework;version="1.8",org.osgi.framework.dto;
  version="1.8";uses:="org.osgi.dto",org.osgi.framework.hooks.bundle;vers
