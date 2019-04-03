@@ -33,7 +33,7 @@
         <sourceArtifact.groupId>org.apache.felix</sourceArtifact.groupId>
         <sourceArtifact.artifactId>org.apache.felix.framework</sourceArtifact.artifactId>
         <sourceArtifact.version>5.4.0</sourceArtifact.version>
-        <jahia.patch.version>jahia1-SNAPSHOT</jahia.patch.version>
+        <jahia.patch.version>jahia1</jahia.patch.version>
         <dollar>$</dollar>
         <felix.java.version>6</felix.java.version>
     </properties>
