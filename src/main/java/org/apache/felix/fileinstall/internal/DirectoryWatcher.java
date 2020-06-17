@@ -21,7 +21,6 @@ package org.apache.felix.fileinstall.internal;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -44,10 +43,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 
+import org.apache.felix.fileinstall.Artifact;
 import org.apache.felix.fileinstall.ArtifactInstaller;
 import org.apache.felix.fileinstall.ArtifactListener;
 import org.apache.felix.fileinstall.ArtifactTransformer;
 import org.apache.felix.fileinstall.ArtifactUrlTransformer;
+import org.apache.felix.fileinstall.CustomHandler;
 import org.apache.felix.fileinstall.internal.Util.Logger;
 import org.apache.felix.utils.manifest.Clause;
 import org.apache.felix.utils.manifest.Parser;
@@ -59,10 +60,12 @@ import org.osgi.framework.BundleEvent;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.BundleListener;
 import org.osgi.framework.Constants;
+import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.Version;
 import org.osgi.framework.startlevel.BundleStartLevel;
 import org.osgi.framework.startlevel.FrameworkStartLevel;
 import org.osgi.framework.wiring.BundleRevision;
+import org.osgi.util.tracker.ServiceTracker;
 
 /**
  * -DirectoryWatcher-
@@ -97,7 +100,6 @@ public class DirectoryWatcher extends Thread implements BundleListener
     public final static String TMPDIR = "felix.fileinstall.tmpdir";
     public final static String FILTER = "felix.fileinstall.filter";
     public final static String START_NEW_BUNDLES = "felix.fileinstall.bundles.new.start";
-    public final static String UNINSTALL_REMOVE = "felix.fileinstall.bundles.uninstall.remove";
     public final static String USE_START_TRANSIENT = "felix.fileinstall.bundles.startTransient";
     public final static String USE_START_ACTIVATION_POLICY = "felix.fileinstall.bundles.startActivationPolicy";
     public final static String NO_INITIAL_DELAY = "felix.fileinstall.noInitialDelay";
@@ -110,7 +112,7 @@ public class DirectoryWatcher extends Thread implements BundleListener
     public final static String FRAGMENT_SCOPE = "felix.fileinstall.fragmentRefreshScope";
     public final static String DISABLE_NIO2 = "felix.fileinstall.disableNio2";
     public final static String SUBDIR_MODE = "felix.fileinstall.subdir.mode";
-    public final static String BUNDLE_LOCATION_MAP_FILE = "felix.fileinstall.bundleLocationMapFile";
+    public final static String CUSTOM_HANDLER = CustomHandler.PROP_ID;
 
     public final static String SCOPE_NONE = "none";
     public final static String SCOPE_MANAGED = "managed";
@@ -141,7 +143,6 @@ public class DirectoryWatcher extends Thread implements BundleListener
     String fragmentScope;
     String optionalScope;
     boolean disableNio2;
-    File bundleLocationMapFile;
 
     // Map of all installed artifacts
     final Map<File, Artifact> currentManagedArtifacts = new HashMap<File, Artifact>();
@@ -164,6 +165,8 @@ public class DirectoryWatcher extends Thread implements BundleListener
     // flag (acces to which must be synchronized) that indicates wheter there's a change in state of system,
     // which may result in an attempt to start the watched bundles
     private AtomicBoolean stateChanged = new AtomicBoolean();
+    
+    private ServiceTracker<CustomHandler, CustomHandler> handlerTracker;
 
     public DirectoryWatcher(FileInstall fileInstall, Map<String, String> properties, BundleContext context)
     {
@@ -180,7 +183,6 @@ public class DirectoryWatcher extends Thread implements BundleListener
         tmpDir = getFile(properties, TMPDIR, null);
         prepareTempDir();
         startBundles = getBoolean(properties, START_NEW_BUNDLES, true);  // by default, we start bundles.
-        uninstallRemove = getBoolean(properties, UNINSTALL_REMOVE, false);  // by default, bundles are not removed from file system when uninstalled
         useStartTransient = getBoolean(properties, USE_START_TRANSIENT, false);  // by default, we start bundles persistently.
         useStartActivationPolicy = getBoolean(properties, USE_START_ACTIVATION_POLICY, true);  // by default, we start bundles using activation policy.
         filter = properties.get(FILTER);
@@ -191,8 +193,7 @@ public class DirectoryWatcher extends Thread implements BundleListener
         fragmentScope = properties.get(FRAGMENT_SCOPE);
         optionalScope = properties.get(OPTIONAL_SCOPE);
         disableNio2 = getBoolean(properties, DISABLE_NIO2, false);
-        bundleLocationMapFile = getFile(properties, BUNDLE_LOCATION_MAP_FILE, null);
-        verifyBundleLocationMapFile();
+        registerCustomHandlerHandler(properties.get(CUSTOM_HANDLER));
         this.context.addBundleListener(this);
 
         if (disableNio2) {
@@ -228,23 +229,6 @@ public class DirectoryWatcher extends Thread implements BundleListener
         }
     }
 
-    private void verifyBundleLocationMapFile()
-    {
-        if (bundleLocationMapFile == null) {
-            return;
-        }
-        try {
-            // This will only create new file if it does not exist which is the case on first startup.
-            bundleLocationMapFile.createNewFile();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        if (!bundleLocationMapFile.isFile())
-        {
-            throw new RuntimeException("File Install can't use " + bundleLocationMapFile + " because it is not a file");
-        }
-    }
-
     public static String getThreadName(Map<String, String> properties)
     {
         return (properties.get(DIR) != null ? properties.get(DIR) : "./load");
@@ -275,6 +259,10 @@ public class DirectoryWatcher extends Thread implements BundleListener
             }
         }
         super.start();
+        CustomHandler customHandler = getCustomHandler();
+        if (customHandler != null) {
+            customHandler.watcherStarted();
+        }
     }
 
     /**
@@ -368,7 +356,11 @@ public class DirectoryWatcher extends Thread implements BundleListener
                 {
                     log(Logger.LOG_DEBUG, "Bundle " + bundleEvent.getBundle().getBundleId()
                             + " has been uninstalled", null);
-                    it.remove();
+                    removeArtifact(artifact.getPath());
+                    CustomHandler customHandler = getCustomHandler();
+                    if (customHandler != null) {
+                        customHandler.removeUninstalledBundleData(artifact);
+                    }
                     if (uninstallRemove) {
                         removeArtifact(artifact.getPath());
                         deleteTransformedFile(artifact);
@@ -411,17 +403,21 @@ public class DirectoryWatcher extends Thread implements BundleListener
 
     private void doProcess(Set<File> files) throws InterruptedException
     {
-        List<ArtifactListener> listeners = fileInstall.getListeners();
-        List<Artifact> deleted = new ArrayList<Artifact>();
-        List<Artifact> modified = new ArrayList<Artifact>();
-        List<Artifact> created = new ArrayList<Artifact>();
-
         // Try to process again files that could not be processed
         synchronized (processingFailures)
         {
             files.addAll(processingFailures);
             processingFailures.clear();
         }
+        
+        if (files.isEmpty()) {
+            return;
+        }
+
+        List<ArtifactListener> listeners = fileInstall.getListeners();
+        List<Artifact> deleted = new ArrayList<Artifact>();
+        List<Artifact> modified = new ArrayList<Artifact>();
+        List<Artifact> created = new ArrayList<Artifact>();
 
         for (File file : files) {
             boolean exists = file.exists();
@@ -520,44 +516,49 @@ public class DirectoryWatcher extends Thread implements BundleListener
                 }
             }
         }
-        // Handle deleted artifacts
-        // We do the operations in the following order:
-        // uninstall, update, install, refresh & start.
-        Collection<Bundle> uninstalledBundles = uninstall(deleted);
-        Collection<Bundle> updatedBundles = update(modified);
-        Collection<Bundle> installedBundles = install(created);
-
-        if (!uninstalledBundles.isEmpty() || !updatedBundles.isEmpty() || !installedBundles.isEmpty())
-        {
-            Set<Bundle> toRefresh = new HashSet<Bundle>();
-            toRefresh.addAll(uninstalledBundles);
-            toRefresh.addAll(updatedBundles);
-            toRefresh.addAll(installedBundles);
-            findBundlesWithFragmentsToRefresh(toRefresh);
-            findBundlesWithOptionalPackagesToRefresh(toRefresh);
-            if (toRefresh.size() > 0)
+        CustomHandler handler = getCustomHandler();
+        if (handler != null) {
+            delegateToCustomHandler(deleted, modified, created, handler);
+        } else {
+            // Handle deleted artifacts
+            // We do the operations in the following order:
+            // uninstall, update, install, refresh & start.
+            Collection<Bundle> uninstalledBundles = uninstall(deleted);
+            Collection<Bundle> updatedBundles = update(modified);
+            Collection<Bundle> installedBundles = install(created);
+    
+            if (!uninstalledBundles.isEmpty() || !updatedBundles.isEmpty() || !installedBundles.isEmpty())
             {
-                // Refresh if any bundle got uninstalled or updated.
-                refresh(toRefresh);
-                // set the state to reattempt starting managed bundles which aren't already STARTING or ACTIVE
-                setStateChanged(true);
+                Set<Bundle> toRefresh = new HashSet<Bundle>();
+                toRefresh.addAll(uninstalledBundles);
+                toRefresh.addAll(updatedBundles);
+                toRefresh.addAll(installedBundles);
+                findBundlesWithFragmentsToRefresh(toRefresh);
+                findBundlesWithOptionalPackagesToRefresh(toRefresh);
+                if (toRefresh.size() > 0)
+                {
+                    // Refresh if any bundle got uninstalled or updated.
+                    refresh(toRefresh);
+                    // set the state to reattempt starting managed bundles which aren't already STARTING or ACTIVE
+                    setStateChanged(true);
+                }
             }
-        }
-
-        if (startBundles && isStateChanged())
-        {
-            // Try to start all the bundles that are not persistently stopped
-            startAllBundles();
-
-            delayedStart.addAll(installedBundles);
-            delayedStart.removeAll(uninstalledBundles);
-            // Try to start newly installed bundles, or bundles which we missed on a previous round
-            startBundles(delayedStart);
-            consistentlyFailingBundles.clear();
-            consistentlyFailingBundles.addAll(delayedStart);
-
-            // set the state as unchanged to not reattempt starting failed bundles
-            setStateChanged(false);
+    
+            if (startBundles && isStateChanged())
+            {
+                // Try to start all the bundles that are not persistently stopped
+                startAllBundles();
+    
+                delayedStart.addAll(installedBundles);
+                delayedStart.removeAll(uninstalledBundles);
+                // Try to start newly installed bundles, or bundles which we missed on a previous round
+                startBundles(delayedStart);
+                consistentlyFailingBundles.clear();
+                consistentlyFailingBundles.addAll(delayedStart);
+    
+                // set the state as unchanged to not reattempt starting failed bundles
+                setStateChanged(false);
+            }
         }
     }
 
@@ -825,6 +826,7 @@ public class DirectoryWatcher extends Thread implements BundleListener
         {
             // Ignore
         }
+        unregisterCustomHandlerTracker();
         try
         {
             join(10000);
@@ -845,7 +847,8 @@ public class DirectoryWatcher extends Thread implements BundleListener
         Bundle[] bundles = this.context.getBundles();
         String watchedDirPath = watchedDirectory.toURI().normalize().getPath();
         Map<File, Long> checksums = new HashMap<File, Long>();
-        Properties bundleLocationMap = loadBundleLocationMap();
+        CustomHandler handler = getCustomHandler();
+        Properties bundleLocationMapping = handler != null ? handler.getBundleLocationMapping() : null;
         for (Bundle bundle : bundles) {
             // Convert to a URI because the location of a bundle
             // is typically a URI. At least, that's the case for
@@ -856,8 +859,8 @@ public class DirectoryWatcher extends Thread implements BundleListener
             String path = null;
             if (location != null &&
                     !location.equals(Constants.SYSTEM_BUNDLE_LOCATION)) {
-                if (bundleLocationMap != null && bundleLocationMap.containsKey(location)) {
-                    location = bundleLocationMap.getProperty(location);
+                if (bundleLocationMapping != null && bundleLocationMapping.containsKey(location)) {
+                    location = bundleLocationMapping.getProperty(location);
                 }
                 URI uri;
                 try {
@@ -1003,12 +1006,6 @@ public class DirectoryWatcher extends Thread implements BundleListener
                     in.close();
                 }
                 artifact.setBundleId(bundle.getBundleId());
-                Properties bundleLocationMap = loadBundleLocationMap();
-                if (bundleLocationMap != null)
-                {
-                    bundleLocationMap.put(location, path.toURI().normalize().getPath());
-                    saveBundleLocationMap(bundleLocationMap);
-                }
             }
             // if the listener is an artifact transformer
             else if (artifact.getListener() instanceof ArtifactTransformer)
@@ -1117,22 +1114,6 @@ public class DirectoryWatcher extends Thread implements BundleListener
             removeArtifact(path);
             // Delete transformed file
             deleteTransformedFile(artifact);
-            // Remove from location map
-            Properties bundleLocationMap = loadBundleLocationMap();
-            if (bundleLocationMap != null)
-            {
-                // The transformed URL of the artifact is not always known, so rely rather on file path
-                for (Iterator<Map.Entry<Object, Object>> it = bundleLocationMap.entrySet().iterator(); it.hasNext(); )
-                {
-                    Map.Entry<Object, Object> entry = it.next();
-                    String filePath = (String) entry.getValue();
-                    if (path.equals(new File(filePath)))
-                    {
-                        it.remove();
-                    }
-                }
-                saveBundleLocationMap(bundleLocationMap);
-            }
             // if the listener is an installer, uninstall the artifact
             if (artifact.getListener() instanceof ArtifactInstaller)
             {
@@ -1557,37 +1538,65 @@ public class DirectoryWatcher extends Thread implements BundleListener
         return stateChanged.get();
     }
 
-    private Properties loadBundleLocationMap() {
-        if (bundleLocationMapFile == null) {
-            return null;
-        }
-        Properties bundleLocationMap = new Properties();
-        try {
-            FileInputStream file = new FileInputStream(bundleLocationMapFile);
-            try {
-                bundleLocationMap.load(file);
-            } finally {
-                file.close();
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return bundleLocationMap;
+
+    private CustomHandler getCustomHandler() {
+        return handlerTracker != null ? handlerTracker.getService() : null;
     }
 
-    private void saveBundleLocationMap(Properties bundleLocationMap) {
-        if (bundleLocationMapFile == null) {
+    private void registerCustomHandlerHandler(String handlerFilter) {
+        if (handlerFilter != null) {
+            log(Logger.LOG_INFO, "Will use custom file install handler: " + handlerFilter, null);
+            try {
+                handlerTracker = new ServiceTracker<CustomHandler, CustomHandler>(context,
+                        context.createFilter(handlerFilter), null);
+            } catch (InvalidSyntaxException e) {
+                log(Logger.LOG_ERROR, "Invalid filter expression for custom file install handler: " + handlerFilter, e);
+                throw new IllegalArgumentException(
+                        "Invalid filter expressio for custom file install handler: " + handlerFilter, e);
+            }
+            handlerTracker.open();
+        }
+    }
+
+    private void unregisterCustomHandlerTracker() {
+        if (handlerTracker != null) {
+            handlerTracker.close();
+        }
+    }
+    
+    private void delegateToCustomHandler(List<Artifact> deleted, List<Artifact> modified, List<Artifact> created,
+            CustomHandler handler) {
+        if (deleted.isEmpty() && modified.isEmpty() && created.isEmpty()) {
             return;
         }
-        try {
-            FileOutputStream file = new FileOutputStream(bundleLocationMapFile);
-            try {
-                bundleLocationMap.store(file, null);
-            } finally {
-                file.close();
+
+        // pre-process deleted artifacts
+        for (Artifact artifact : deleted) {
+            File path = artifact.getPath();
+            // Find a listener for this artifact if needed
+            if (artifact.getListener() == null) {
+                artifact.setListener(findListener(path, fileInstall.getListeners()));
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            // Forget this artifact
+            removeArtifact(path);
+            // Delete transformed file
+            deleteTransformedFile(artifact);
+        }
+
+        handler.process(created, modified, deleted);
+
+        // register installed artifacts and store checksums
+        for (Artifact artifact : created) {
+            setArtifact(artifact.getPath(), artifact);
+            if (artifact.getBundleId() > 0) {
+                Util.storeChecksum(context.getBundle(artifact.getBundleId()), artifact.getChecksum(), context);
+            }
+        }
+        // update checksums for modified artifacts
+        for (Artifact artifact : modified) {
+            if (artifact.getBundleId() > 0) {
+                Util.storeChecksum(context.getBundle(artifact.getBundleId()), artifact.getChecksum(), context);
+            }
         }
     }
 }

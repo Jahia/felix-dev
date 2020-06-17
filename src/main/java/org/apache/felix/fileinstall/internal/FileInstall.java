@@ -43,8 +43,6 @@ import org.osgi.framework.wiring.FrameworkWiring;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.cm.ManagedServiceFactory;
-import org.osgi.service.event.Event;
-import org.osgi.service.event.EventAdmin;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
@@ -103,7 +101,6 @@ public class FileInstall implements BundleActivator, ServiceTrackerCustomizer
             set(ht, DirectoryWatcher.FILTER);
             set(ht, DirectoryWatcher.TMPDIR);
             set(ht, DirectoryWatcher.START_NEW_BUNDLES);
-            set(ht, DirectoryWatcher.UNINSTALL_REMOVE);
             set(ht, DirectoryWatcher.USE_START_TRANSIENT);
             set(ht, DirectoryWatcher.USE_START_ACTIVATION_POLICY);
             set(ht, DirectoryWatcher.NO_INITIAL_DELAY);
@@ -116,6 +113,7 @@ public class FileInstall implements BundleActivator, ServiceTrackerCustomizer
             set(ht, DirectoryWatcher.FRAGMENT_SCOPE);
             set(ht, DirectoryWatcher.DISABLE_NIO2);
             set(ht, DirectoryWatcher.SUBDIR_MODE);
+            set(ht, DirectoryWatcher.CUSTOM_HANDLER);
 
             // check if dir is an array of dirs
             String dirs = ht.get(DirectoryWatcher.DIR);
@@ -254,24 +252,8 @@ public class FileInstall implements BundleActivator, ServiceTrackerCustomizer
             watchers.put(pid, watcher);
         }
         watcher.start();
-        publishStartedEvent(watcher);
     }
 
-    private void publishStartedEvent(DirectoryWatcher watcher) {
-        ServiceReference<EventAdmin> ref = context.getServiceReference(EventAdmin.class);
-        if (ref != null) {
-            EventAdmin evtAdmin = context.getService(ref);
-
-            Dictionary<String, String> properties = new Hashtable<String, String>();
-            properties.put("type", "watcherStarted");
-            properties.put("dir", watcher.properties.get(DirectoryWatcher.DIR));
-
-            Event reportGeneratedEvent = new Event("org/apache/felix/fileinstall", properties);
-
-            evtAdmin.postEvent(reportGeneratedEvent);
-        }
-    }
-    
     public void updateChecksum(File file)
     {
         List<DirectoryWatcher> toUpdate = new ArrayList<DirectoryWatcher>();
