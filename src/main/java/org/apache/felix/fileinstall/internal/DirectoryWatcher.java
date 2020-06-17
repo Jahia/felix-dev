@@ -21,6 +21,7 @@ package org.apache.felix.fileinstall.internal;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -36,6 +37,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -108,6 +110,7 @@ public class DirectoryWatcher extends Thread implements BundleListener
     public final static String FRAGMENT_SCOPE = "felix.fileinstall.fragmentRefreshScope";
     public final static String DISABLE_NIO2 = "felix.fileinstall.disableNio2";
     public final static String SUBDIR_MODE = "felix.fileinstall.subdir.mode";
+    public final static String BUNDLE_LOCATION_MAP_FILE = "felix.fileinstall.bundleLocationMapFile";
 
     public final static String SCOPE_NONE = "none";
     public final static String SCOPE_MANAGED = "managed";
@@ -138,6 +141,7 @@ public class DirectoryWatcher extends Thread implements BundleListener
     String fragmentScope;
     String optionalScope;
     boolean disableNio2;
+    File bundleLocationMapFile;
 
     // Map of all installed artifacts
     final Map<File, Artifact> currentManagedArtifacts = new HashMap<File, Artifact>();
@@ -147,7 +151,7 @@ public class DirectoryWatcher extends Thread implements BundleListener
 
     // Represents files that could not be processed because of a missing artifact listener
     final Set<File> processingFailures = new HashSet<File>();
-    
+
     // Represents installed artifacts which need to be started later because they failed to start
     Set<Bundle> delayedStart = new HashSet<Bundle>();
 
@@ -187,6 +191,8 @@ public class DirectoryWatcher extends Thread implements BundleListener
         fragmentScope = properties.get(FRAGMENT_SCOPE);
         optionalScope = properties.get(OPTIONAL_SCOPE);
         disableNio2 = getBoolean(properties, DISABLE_NIO2, false);
+        bundleLocationMapFile = getFile(properties, BUNDLE_LOCATION_MAP_FILE, null);
+        verifyBundleLocationMapFile();
         this.context.addBundleListener(this);
 
         if (disableNio2) {
@@ -219,6 +225,23 @@ public class DirectoryWatcher extends Thread implements BundleListener
                 + " because it's not a directory", null);
             throw new RuntimeException(
                 "File Install can't monitor " + watchedDirectory + " because it is not a directory");
+        }
+    }
+
+    private void verifyBundleLocationMapFile()
+    {
+        if (bundleLocationMapFile == null) {
+            return;
+        }
+        try {
+            // This will only create new file if it does not exist which is the case on first startup.
+            bundleLocationMapFile.createNewFile();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        if (!bundleLocationMapFile.isFile())
+        {
+            throw new RuntimeException("File Install can't use " + bundleLocationMapFile + " because it is not a file");
         }
     }
 
@@ -525,7 +548,7 @@ public class DirectoryWatcher extends Thread implements BundleListener
         {
             // Try to start all the bundles that are not persistently stopped
             startAllBundles();
-            
+
             delayedStart.addAll(installedBundles);
             delayedStart.removeAll(uninstalledBundles);
             // Try to start newly installed bundles, or bundles which we missed on a previous round
@@ -822,6 +845,7 @@ public class DirectoryWatcher extends Thread implements BundleListener
         Bundle[] bundles = this.context.getBundles();
         String watchedDirPath = watchedDirectory.toURI().normalize().getPath();
         Map<File, Long> checksums = new HashMap<File, Long>();
+        Properties bundleLocationMap = loadBundleLocationMap();
         for (Bundle bundle : bundles) {
             // Convert to a URI because the location of a bundle
             // is typically a URI. At least, that's the case for
@@ -832,9 +856,12 @@ public class DirectoryWatcher extends Thread implements BundleListener
             String path = null;
             if (location != null &&
                     !location.equals(Constants.SYSTEM_BUNDLE_LOCATION)) {
+                if (bundleLocationMap != null && bundleLocationMap.containsKey(location)) {
+                    location = bundleLocationMap.getProperty(location);
+                }
                 URI uri;
                 try {
-                    uri = new URI(bundle.getLocation()).normalize();
+                    uri = new URI(location).normalize();
                 } catch (URISyntaxException e) {
                     // Let's try to interpret the location as a file path
                     uri = new File(location).toURI().normalize();
@@ -976,6 +1003,12 @@ public class DirectoryWatcher extends Thread implements BundleListener
                     in.close();
                 }
                 artifact.setBundleId(bundle.getBundleId());
+                Properties bundleLocationMap = loadBundleLocationMap();
+                if (bundleLocationMap != null)
+                {
+                    bundleLocationMap.put(location, path.toURI().normalize().getPath());
+                    saveBundleLocationMap(bundleLocationMap);
+                }
             }
             // if the listener is an artifact transformer
             else if (artifact.getListener() instanceof ArtifactTransformer)
@@ -1062,7 +1095,7 @@ public class DirectoryWatcher extends Thread implements BundleListener
         {
             b.adapt(BundleStartLevel.class).setStartLevel(startLevel);
         }
-        
+
         return b;
     }
 
@@ -1084,6 +1117,22 @@ public class DirectoryWatcher extends Thread implements BundleListener
             removeArtifact(path);
             // Delete transformed file
             deleteTransformedFile(artifact);
+            // Remove from location map
+            Properties bundleLocationMap = loadBundleLocationMap();
+            if (bundleLocationMap != null)
+            {
+                // The transformed URL of the artifact is not always known, so rely rather on file path
+                for (Iterator<Map.Entry<Object, Object>> it = bundleLocationMap.entrySet().iterator(); it.hasNext(); )
+                {
+                    Map.Entry<Object, Object> entry = it.next();
+                    String filePath = (String) entry.getValue();
+                    if (path.equals(new File(filePath)))
+                    {
+                        it.remove();
+                    }
+                }
+                saveBundleLocationMap(bundleLocationMap);
+            }
             // if the listener is an installer, uninstall the artifact
             if (artifact.getListener() instanceof ArtifactInstaller)
             {
@@ -1201,7 +1250,7 @@ public class DirectoryWatcher extends Thread implements BundleListener
         // when refreshing packages).
         if (startBundles)
         {
-            if (!isFragment(bundle)) 
+            if (!isFragment(bundle))
             {
                 bundle.stop(Bundle.STOP_TRANSIENT);
             }
@@ -1499,7 +1548,7 @@ public class DirectoryWatcher extends Thread implements BundleListener
             currentManagedArtifacts.remove(file);
         }
     }
-    
+
     private void setStateChanged(boolean changed) {
         this.stateChanged.set(changed);
     }
@@ -1508,4 +1557,37 @@ public class DirectoryWatcher extends Thread implements BundleListener
         return stateChanged.get();
     }
 
+    private Properties loadBundleLocationMap() {
+        if (bundleLocationMapFile == null) {
+            return null;
+        }
+        Properties bundleLocationMap = new Properties();
+        try {
+            FileInputStream file = new FileInputStream(bundleLocationMapFile);
+            try {
+                bundleLocationMap.load(file);
+            } finally {
+                file.close();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return bundleLocationMap;
+    }
+
+    private void saveBundleLocationMap(Properties bundleLocationMap) {
+        if (bundleLocationMapFile == null) {
+            return;
+        }
+        try {
+            FileOutputStream file = new FileOutputStream(bundleLocationMapFile);
+            try {
+                bundleLocationMap.store(file, null);
+            } finally {
+                file.close();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
