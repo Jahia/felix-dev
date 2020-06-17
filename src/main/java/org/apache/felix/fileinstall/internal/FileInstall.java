@@ -43,6 +43,8 @@ import org.osgi.framework.wiring.FrameworkWiring;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.cm.ManagedServiceFactory;
+import org.osgi.service.event.Event;
+import org.osgi.service.event.EventAdmin;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
@@ -251,8 +253,24 @@ public class FileInstall implements BundleActivator, ServiceTrackerCustomizer
             watchers.put(pid, watcher);
         }
         watcher.start();
+        publishStartedEvent(watcher);
     }
 
+    private void publishStartedEvent(DirectoryWatcher watcher) {
+        ServiceReference<EventAdmin> ref = context.getServiceReference(EventAdmin.class);
+        if (ref != null) {
+            EventAdmin evtAdmin = context.getService(ref);
+
+            Dictionary<String, String> properties = new Hashtable<String, String>();
+            properties.put("type", "watcherStarted");
+            properties.put("dir", watcher.properties.get(DirectoryWatcher.DIR));
+
+            Event reportGeneratedEvent = new Event("org/apache/felix/fileinstall", properties);
+
+            evtAdmin.postEvent(reportGeneratedEvent);
+        }
+    }
+    
     public void updateChecksum(File file)
     {
         List<DirectoryWatcher> toUpdate = new ArrayList<DirectoryWatcher>();
