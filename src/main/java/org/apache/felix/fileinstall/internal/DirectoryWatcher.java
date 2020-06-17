@@ -346,17 +346,22 @@ public class DirectoryWatcher extends Thread implements BundleListener
                     log(Logger.LOG_DEBUG, "Bundle " + bundleEvent.getBundle().getBundleId()
                             + " has been uninstalled", null);
                     it.remove();
-                    if(uninstallRemove) {
-                        if (artifact.getJaredDirectory() != null
-                                && artifact.getJaredDirectory().exists()) {
-                            // remove bundle file from var/modules
-                            if (!artifact.getJaredDirectory().delete()) {
-                                log(Logger.LOG_WARNING, "Unable to delete file for uninstalled bundle " + bundleEvent.getBundle().getBundleId(), null);
+                    if (uninstallRemove) {
+                        removeArtifact(artifact.getPath());
+                        deleteTransformedFile(artifact);
+                        deleteJaredDirectory(artifact);
+                        if (artifact.getPath().exists()) {
+                            if (!artifact.getPath().delete()) {
+                                log(Logger.LOG_WARNING, "Unable to delete file " + artifact.getPath()
+                                        + " for uninstalled bundle " + bundleEvent.getBundle().getBundleId(), null);
+                            } else {
+                                log(Logger.LOG_INFO,
+                                        "File " + artifact.getPath() + " for bundle "
+                                                + bundleEvent.getBundle().getBundleId()
+                                                + " has been removed from file system",
+                                        null);
                             }
                         }
-
-                        log(Logger.LOG_DEBUG, "Bundle " + bundleEvent.getBundle().getBundleId()
-                                + " has been removed from file system", null);
                     }
                     break;
                 }
