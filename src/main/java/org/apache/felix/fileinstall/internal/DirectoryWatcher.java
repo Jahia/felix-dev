@@ -95,6 +95,7 @@ public class DirectoryWatcher extends Thread implements BundleListener
     public final static String TMPDIR = "felix.fileinstall.tmpdir";
     public final static String FILTER = "felix.fileinstall.filter";
     public final static String START_NEW_BUNDLES = "felix.fileinstall.bundles.new.start";
+    public final static String UNINSTALL_REMOVE = "felix.fileinstall.bundles.uninstall.remove";
     public final static String USE_START_TRANSIENT = "felix.fileinstall.bundles.startTransient";
     public final static String USE_START_ACTIVATION_POLICY = "felix.fileinstall.bundles.startActivationPolicy";
     public final static String NO_INITIAL_DELAY = "felix.fileinstall.noInitialDelay";
@@ -123,6 +124,7 @@ public class DirectoryWatcher extends Thread implements BundleListener
     long poll;
     int logLevel;
     boolean startBundles;
+    boolean uninstallRemove;
     boolean useStartTransient;
     boolean useStartActivationPolicy;
     String filter;
@@ -174,6 +176,7 @@ public class DirectoryWatcher extends Thread implements BundleListener
         tmpDir = getFile(properties, TMPDIR, null);
         prepareTempDir();
         startBundles = getBoolean(properties, START_NEW_BUNDLES, true);  // by default, we start bundles.
+        uninstallRemove = getBoolean(properties, UNINSTALL_REMOVE, false);  // by default, bundles are not removed from file system when uninstalled
         useStartTransient = getBoolean(properties, USE_START_TRANSIENT, false);  // by default, we start bundles persistently.
         useStartActivationPolicy = getBoolean(properties, USE_START_ACTIVATION_POLICY, true);  // by default, we start bundles using activation policy.
         filter = properties.get(FILTER);
@@ -343,6 +346,18 @@ public class DirectoryWatcher extends Thread implements BundleListener
                     log(Logger.LOG_DEBUG, "Bundle " + bundleEvent.getBundle().getBundleId()
                             + " has been uninstalled", null);
                     it.remove();
+                    if(uninstallRemove) {
+                        if (artifact.getJaredDirectory() != null
+                                && artifact.getJaredDirectory().exists()) {
+                            // remove bundle file from var/modules
+                            if (!artifact.getJaredDirectory().delete()) {
+                                log(Logger.LOG_WARNING, "Unable to delete file for uninstalled bundle " + bundleEvent.getBundle().getBundleId(), null);
+                            }
+                        }
+
+                        log(Logger.LOG_DEBUG, "Bundle " + bundleEvent.getBundle().getBundleId()
+                                + " has been removed from file system", null);
+                    }
                     break;
                 }
             }
