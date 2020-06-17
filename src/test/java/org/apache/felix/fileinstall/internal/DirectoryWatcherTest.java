@@ -27,6 +27,7 @@ import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
 import junit.framework.TestCase;
+import org.apache.felix.fileinstall.Artifact;
 import org.apache.felix.fileinstall.ArtifactListener;
 import org.easymock.EasyMock;
 import org.easymock.IMocksControl;
