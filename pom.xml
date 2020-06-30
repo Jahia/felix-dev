@@ -28,7 +28,7 @@
 
     <artifactId>org.apache.felix.webconsole</artifactId>
     <packaging>bundle</packaging>
-    <version>4.3.16</version>
+    <version>4.3.16-jahia1-SNAPSHOT</version>
 
     <name>Apache Felix Web Management Console</name>
     <description>
@@ -47,9 +47,10 @@
     </properties>
 
     <scm>
-        <connection>scm:svn:http://svn.apache.org/repos/asf/felix/releases/org.apache.felix.webconsole-4.3.16</connection>
-        <developerConnection>scm:svn:https://svn.apache.org/repos/asf/felix/releases/org.apache.felix.webconsole-4.3.16</developerConnection>
-        <url>http://svn.apache.org/viewvc/felix/releases/org.apache.felix.webconsole-4.3.16</url>
+        <connection>scm:git:https://github.com/Jahia/felix</connection>
+        <developerConnection>scm:git:git@github.com:Jahia/felix.git</developerConnection>
+        <url>https://github.com/Jahia/felix</url>
+        <tag>webconsole-4-3-X-jahia</tag>
     </scm>
 
     <build>
