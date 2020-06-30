@@ -114,6 +114,7 @@ public class FileInstall implements BundleActivator, ServiceTrackerCustomizer
             set(ht, DirectoryWatcher.FRAGMENT_SCOPE);
             set(ht, DirectoryWatcher.DISABLE_NIO2);
             set(ht, DirectoryWatcher.SUBDIR_MODE);
+            set(ht, DirectoryWatcher.CUSTOM_HANDLER);
 
             // check if dir is an array of dirs
             String dirs = ht.get(DirectoryWatcher.DIR);
@@ -168,7 +169,7 @@ public class FileInstall implements BundleActivator, ServiceTrackerCustomizer
         String o = context.getProperty(key);
         if (o == null)
         {
-           o = System.getProperty(key.toUpperCase().replace('.', '_'));
+            o = System.getProperty(key.toUpperCase().replace('.', '_'));
             if (o == null)
             {
                 return;
@@ -273,7 +274,7 @@ public class FileInstall implements BundleActivator, ServiceTrackerCustomizer
         {
             listeners.put(reference, listener);
         }
-        
+
         long currentStamp = reference.getBundle().getLastModified();
 
         List<DirectoryWatcher> toNotify = new ArrayList<DirectoryWatcher>();

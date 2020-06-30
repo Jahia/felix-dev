@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.felix.fileinstall.internal;
+package org.apache.felix.fileinstall;
 
 import java.io.File;
 import java.net.URL;
