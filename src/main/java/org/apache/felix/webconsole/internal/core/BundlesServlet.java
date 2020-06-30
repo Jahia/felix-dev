@@ -1639,11 +1639,14 @@ public class BundlesServlet extends SimpleWebConsolePlugin implements OsgiManage
             }
             else
             {
+                String version = getVersion( bundleFile );
                 Bundle[] bundles = BundleContextUtil.getWorkingBundleContext(this.getBundleContext()).getBundles();
                 for ( int i = 0; i < bundles.length; i++ )
                 {
+                    // we search bundle either by matching location or by symbolicName + version
                     if ( ( bundles[i].getLocation() != null && bundles[i].getLocation().equals( location ) )
-                            || ( bundles[i].getSymbolicName() != null && bundles[i].getSymbolicName().equals( symbolicName ) ) )
+                        || ( bundles[i].getSymbolicName() != null && bundles[i].getSymbolicName().equals( symbolicName ) )
+                        && ( version == null || bundles[i].getVersion().toString().equals( version ) ) )
                     {
                         updateBundle = bundles[i];
                         break;
@@ -1711,6 +1714,40 @@ public class BundlesServlet extends SimpleWebConsolePlugin implements OsgiManage
         return null;
     }
 
+    private String getVersion( File bundleFile )
+    {
+        JarFile jar = null;
+        try
+        {
+            jar = new JarFile( bundleFile );
+            Manifest m = jar.getManifest();
+            if ( m != null )
+            {
+                return m.getMainAttributes().getValue( Constants.BUNDLE_VERSION );
+            }
+        }
+        catch ( IOException ioe )
+        {
+            log( LogService.LOG_WARNING, "Cannot extract version of bundle file " + bundleFile, ioe );
+        }
+        finally
+        {
+            if ( jar != null )
+            {
+                try
+                {
+                    jar.close();
+                }
+                catch ( IOException ioe )
+                {
+                    // ignore
+                }
+            }
+        }
+
+        // fall back to "not found"
+        return null;
+    }
 
     private void installBackground( final File bundleFile, final String location, final int startlevel,
             final boolean doStart, final boolean refreshPackages )
