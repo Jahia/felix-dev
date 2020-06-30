@@ -1301,7 +1301,7 @@ public class DirectoryWatcher extends Thread implements BundleListener
                 // Don't log this as an error, instead we start the bundle repeatedly.
                 if (logFailures)
                 {
-                    log(Logger.LOG_WARNING, "Error while starting bundle: " + bundle.getLocation(), e);
+                    log(Logger.LOG_WARNING, "Error while starting bundle", e);
                 }
             }
         }
