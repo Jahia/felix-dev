@@ -127,29 +127,25 @@ class MetaTypeServiceSupport extends MetaTypeSupport
             final Bundle[] bundles = this.getBundleContext().getBundles();
             for ( int i = 0; i < bundles.length; i++ )
             {
-                final MetaTypeInformation mti = mts.getMetaTypeInformation( bundles[i] );
-                if ( mti != null )
-                {
-                    final String[] idList = idGetter.getIds( mti );
-                    for ( int j = 0; idList != null && j < idList.length; j++ )
-                    {
-                        // After getting the list of PIDs, a configuration  might be
-                        // removed. So the getObjectClassDefinition will throw
-                        // an exception, and this will prevent ALL configuration from
-                        // being displayed. By catching it, the configurations will be
-                        // visible
-                        ObjectClassDefinition ocd = null;
-                        try
-                        {
-                            ocd = mti.getObjectClassDefinition( idList[j], locale );
-                        }
-                        catch ( IllegalArgumentException ignore )
-                        {
-                            // ignore - just don't show this configuration
-                        }
-                        if ( ocd != null )
-                        {
-                            objectClassesDefinitions.put( idList[j], ocd );
+                if (bundles[i].getState() >= Bundle.RESOLVED) {
+                    final MetaTypeInformation mti = mts.getMetaTypeInformation(bundles[i]);
+                    if (mti != null) {
+                        final String[] idList = idGetter.getIds(mti);
+                        for (int j = 0; idList != null && j < idList.length; j++) {
+                            // After getting the list of PIDs, a configuration  might be
+                            // removed. So the getObjectClassDefinition will throw
+                            // an exception, and this will prevent ALL configuration from
+                            // being displayed. By catching it, the configurations will be
+                            // visible
+                            ObjectClassDefinition ocd = null;
+                            try {
+                                ocd = mti.getObjectClassDefinition(idList[j], locale);
+                            } catch (IllegalArgumentException ignore) {
+                                // ignore - just don't show this configuration
+                            }
+                            if (ocd != null) {
+                                objectClassesDefinitions.put(idList[j], ocd);
+                            }
                         }
                     }
                 }
@@ -196,23 +192,20 @@ class MetaTypeServiceSupport extends MetaTypeSupport
         if ( bundle != null )
         {
             MetaTypeService mts = this.getMetaTypeService();
-            if ( mts != null )
-            {
-                MetaTypeInformation mti = mts.getMetaTypeInformation( bundle );
-                if ( mti != null )
-                {
-                    // see #getObjectClasses( final IdGetter idGetter, final String locale )
-                    try
-                    {
-                        return mti.getObjectClassDefinition( pid, locale );
-                    }
-                    catch ( IllegalArgumentException e )
-                    {
-                        // MetaTypeProvider.getObjectClassDefinition might throw illegal
-                        // argument exception. So we must catch it here, otherwise the
-                        // other configurations will not be shown
-                        // See https://issues.apache.org/jira/browse/FELIX-2390
-                        // https://issues.apache.org/jira/browse/FELIX-3694
+            if ( mts != null ) {
+                if (bundle.getState() >= Bundle.RESOLVED) {
+                    MetaTypeInformation mti = mts.getMetaTypeInformation(bundle);
+                    if (mti != null) {
+                        // see #getObjectClasses( final IdGetter idGetter, final String locale )
+                        try {
+                            return mti.getObjectClassDefinition(pid, locale);
+                        } catch (IllegalArgumentException e) {
+                            // MetaTypeProvider.getObjectClassDefinition might throw illegal
+                            // argument exception. So we must catch it here, otherwise the
+                            // other configurations will not be shown
+                            // See https://issues.apache.org/jira/browse/FELIX-2390
+                            // https://issues.apache.org/jira/browse/FELIX-3694
+                        }
                     }
                 }
             }
