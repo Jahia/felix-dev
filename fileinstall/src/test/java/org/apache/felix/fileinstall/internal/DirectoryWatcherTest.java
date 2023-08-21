@@ -27,6 +27,7 @@ import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
 import junit.framework.TestCase;
+import org.apache.felix.fileinstall.Artifact;
 import org.apache.felix.fileinstall.ArtifactListener;
 import org.easymock.EasyMock;
 import org.easymock.IMocksControl;
@@ -119,7 +120,7 @@ public class DirectoryWatcherTest extends TestCase
     public void testGetBooleanWithNonExistentProperty()
     {
         mockBundleContext.addBundleListener((BundleListener) org.easymock.EasyMock.anyObject());
-        EasyMock.replay(mockBundleContext, mockBundle, mockSysBundle, mockStartLevel); 
+        EasyMock.replay(mockBundleContext, mockBundle, mockSysBundle, mockStartLevel);
         dw = new DirectoryWatcher( new FileInstall(), props, mockBundleContext );
         assertEquals( "getBoolean gives the default value for non-existing properties", true, dw.getBoolean( props, TEST, true ) );
         EasyMock.verify(mockBundleContext);
@@ -131,7 +132,7 @@ public class DirectoryWatcherTest extends TestCase
         props.put( TEST, "true" );
 
         mockBundleContext.addBundleListener((BundleListener) org.easymock.EasyMock.anyObject());
-        EasyMock.replay(mockBundleContext, mockBundle, mockSysBundle, mockStartLevel); 
+        EasyMock.replay(mockBundleContext, mockBundle, mockSysBundle, mockStartLevel);
         dw = new DirectoryWatcher( new FileInstall(), props, mockBundleContext );
         assertEquals( "getBoolean retrieves the right property value", true, dw.getBoolean( props, TEST, false ) );
         EasyMock.verify(mockBundleContext);
@@ -143,7 +144,7 @@ public class DirectoryWatcherTest extends TestCase
         props.put( TEST, "incorrect" );
 
         mockBundleContext.addBundleListener((BundleListener) org.easymock.EasyMock.anyObject());
-        EasyMock.replay(mockBundleContext, mockBundle, mockSysBundle, mockStartLevel); 
+        EasyMock.replay(mockBundleContext, mockBundle, mockSysBundle, mockStartLevel);
         dw = new DirectoryWatcher( new FileInstall(), props, mockBundleContext );
         assertEquals( "getBoolean retrieves the right property value", false, dw.getBoolean( props, TEST, true ) );
         EasyMock.verify(mockBundleContext);
@@ -153,7 +154,7 @@ public class DirectoryWatcherTest extends TestCase
     public void testGetFileWithNonExistentProperty()
     {
         mockBundleContext.addBundleListener((BundleListener) org.easymock.EasyMock.anyObject());
-        EasyMock.replay(mockBundleContext, mockBundle, mockSysBundle, mockStartLevel); 
+        EasyMock.replay(mockBundleContext, mockBundle, mockSysBundle, mockStartLevel);
         dw = new DirectoryWatcher( new FileInstall(), props, mockBundleContext );
         assertEquals( "getFile gives the default value for non-existing properties", new File("tmp"), dw.getFile( props, TEST, new File("tmp") ) );
         EasyMock.verify(mockBundleContext);
@@ -165,7 +166,7 @@ public class DirectoryWatcherTest extends TestCase
         props.put( TEST, "test" );
 
         mockBundleContext.addBundleListener((BundleListener) org.easymock.EasyMock.anyObject());
-        EasyMock.replay(mockBundleContext, mockBundle, mockSysBundle, mockStartLevel); 
+        EasyMock.replay(mockBundleContext, mockBundle, mockSysBundle, mockStartLevel);
         dw = new DirectoryWatcher( new FileInstall(), props, mockBundleContext );
         assertEquals( "getBoolean retrieves the right property value", new File("test"), dw.getFile( props, TEST, new File("tmp") ) );
         EasyMock.verify(mockBundleContext);
@@ -182,7 +183,7 @@ public class DirectoryWatcherTest extends TestCase
         props.put( DirectoryWatcher.FILTER, ".*\\.cfg" );
 
         mockBundleContext.addBundleListener((BundleListener) org.easymock.EasyMock.anyObject());
-        EasyMock.replay(mockBundleContext, mockBundle, mockSysBundle, mockStartLevel); 
+        EasyMock.replay(mockBundleContext, mockBundle, mockSysBundle, mockStartLevel);
 
         dw = new DirectoryWatcher( new FileInstall(), props, mockBundleContext );
 
@@ -203,7 +204,7 @@ public class DirectoryWatcherTest extends TestCase
         props.put( DirectoryWatcher.DIR, new File( "src/test/resources" ).getAbsolutePath() );
 
         mockBundleContext.addBundleListener((BundleListener) org.easymock.EasyMock.anyObject());
-        EasyMock.replay(mockBundleContext, mockBundle, mockSysBundle, mockStartLevel); 
+        EasyMock.replay(mockBundleContext, mockBundle, mockSysBundle, mockStartLevel);
 
         dw = new DirectoryWatcher( new FileInstall(), props, mockBundleContext );
 
@@ -234,12 +235,12 @@ public class DirectoryWatcherTest extends TestCase
 
         EasyMock.verify(mockBundleContext);
     }
-    
+
     public void testInvalidTempDir() throws Exception
     {
         String oldTmpDir = System.getProperty("java.io.tmpdir");
-        
-        try 
+
+        try
         {
             File parent = new File("target/tmp");
             parent.mkdirs();
@@ -256,12 +257,12 @@ public class DirectoryWatcherTest extends TestCase
             EasyMock.expect(mockBundleRevision.getTypes())
                     .andReturn(BundleRevision.TYPE_FRAGMENT);
             EasyMock.replay(mockBundleContext, mockBundle, mockBundleRevision, mockSysBundle, mockStartLevel);
-    
+
             try
             {
                 dw = new DirectoryWatcher( new FileInstall(), props, mockBundleContext );
                 fail("Expected an IllegalStateException");
-            } 
+            }
             catch (IllegalStateException e)
             {
                 // expected
@@ -276,10 +277,10 @@ public class DirectoryWatcherTest extends TestCase
     /**
      * Test the {@link DirectoryWatcher#initializeCurrentManagedBundles()} in conjunction with a non opaque Bundle Location.
      * Assert that a new created {@link Artifact} will be added into the {@link DirectoryWatcher#currentManagedArtifacts}.
-     * 
+     *
      * The {@link DirectoryWatcher#process(java.util.Set)} execution will not be called.
      * This test breaks the execution in {@link Scanner#initialize(java.util.Map)}.
-     * @throws URISyntaxException 
+     * @throws URISyntaxException
      */
     public void testInitializeCurrentManagedBundlesNonOpaqueURIOnBundleLocation() throws URISyntaxException
     {
@@ -328,10 +329,10 @@ public class DirectoryWatcherTest extends TestCase
     /**
      * Test the {@link DirectoryWatcher#initializeCurrentManagedBundles()} in conjunction with a opaque Bundle Location.
      * Assert that a new created {@link Artifact} will be added into the {@link DirectoryWatcher#currentManagedArtifacts}.
-     * 
+     *
      * The {@link DirectoryWatcher#process(java.util.Set)} execution will not be called.
      * This test breaks the execution in {@link Scanner#initialize(java.util.Map)}.
-     * @throws URISyntaxException 
+     * @throws URISyntaxException
      */
     public void testInitializeCurrentManagedBundlesOpaqueURIOnBundleLocation() throws URISyntaxException
     {
@@ -380,7 +381,7 @@ public class DirectoryWatcherTest extends TestCase
     /**
      * Test the {@link DirectoryWatcher#process(java.util.Set) } in conjunction with a opaque Bundle Location.
      * Assert that no bundle refresh will be called.
-     * @throws URISyntaxException 
+     * @throws URISyntaxException
      */
     public void testProcessOpaqueURIOnBundleLocation() throws URISyntaxException
     {
@@ -431,7 +432,7 @@ public class DirectoryWatcherTest extends TestCase
             void refresh(Collection<Bundle> bundles) throws InterruptedException {
                 Assert.fail("bundle refresh called");
             }
-            
+
         };
         dw.noInitialDelay = true;
         // add expected bundle and artifact to the current managed artifacts

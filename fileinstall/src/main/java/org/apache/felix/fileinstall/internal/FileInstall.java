@@ -170,7 +170,7 @@ public class FileInstall implements BundleActivator, ServiceTrackerCustomizer
         String o = context.getProperty(key);
         if (o == null)
         {
-           o = System.getProperty(key.toUpperCase().replace('.', '_'));
+            o = System.getProperty(key.toUpperCase().replace('.', '_'));
             if (o == null)
             {
                 return;
@@ -275,7 +275,7 @@ public class FileInstall implements BundleActivator, ServiceTrackerCustomizer
         {
             listeners.put(reference, listener);
         }
-        
+
         long currentStamp = reference.getBundle().getLastModified();
 
         List<DirectoryWatcher> toNotify = new ArrayList<DirectoryWatcher>();
