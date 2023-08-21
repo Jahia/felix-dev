@@ -33,7 +33,7 @@
   <artifactId>org.apache.felix.fileinstall</artifactId>
   <scm>
     <connection>scm:git:https://github.com/Jahia/felix</connection>
-    <developerConnection>scm:svn:git@github.com:Jahia/felix.git</developerConnection>
+    <developerConnection>scm:git:git@github.com:Jahia/felix.git</developerConnection>
     <url>scm:svn:https://github.com/Jahia/felix-dev</url>
     <tag>org.apache.felix.fileinstall-3.6.4-jahia</tag>
   </scm>
