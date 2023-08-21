@@ -112,6 +112,7 @@ public class DirectoryWatcher extends Thread implements BundleListener
     private Bundle systemBundle;
     String originatingFileName;
     boolean noInitialDelay;
+    boolean firstRun = true;
     int startLevel;
     int activeLevel;
     boolean updateWithListeners;
@@ -217,8 +218,9 @@ public class DirectoryWatcher extends Thread implements BundleListener
 
     public void start()
     {
-        if (noInitialDelay)
-        {
+        if (handlerTracker != null && handlerTracker.getService() == null) {
+            log(Logger.LOG_INFO, "Starting directory watcher for " + watchedDirectory + " , custom handler service is not available, will wait", null);
+        } else if (noInitialDelay) {
             log(Logger.LOG_DEBUG, "Starting initial scan", null);
             initializeCurrentManagedBundles();
             Set<File> files = scanner.scan(true);
@@ -235,10 +237,6 @@ public class DirectoryWatcher extends Thread implements BundleListener
             }
         }
         super.start();
-        CustomHandler customHandler = getCustomHandler();
-        if (customHandler != null) {
-            customHandler.watcherStarted();
-        }
     }
 
     /**
@@ -280,6 +278,9 @@ public class DirectoryWatcher extends Thread implements BundleListener
                             + poll + " milliseconds for initial directory scan.", e);
                     return;
                 }
+            }
+
+            if (firstRun) {
                 initializeCurrentManagedBundles();
             }
         }
@@ -294,7 +295,7 @@ public class DirectoryWatcher extends Thread implements BundleListener
                 // Don't access the disk when the framework is still in a startup phase.
                 if (startLevelSvc.getStartLevel() >= activeLevel
                         && systemBundle.getState() == Bundle.ACTIVE) {
-                    Set<File> files = scanner.scan(false);
+                    Set<File> files = scanner.scan(firstRun);
                     // Check that there is a result.  If not, this means that the directory can not be listed,
                     // so it's presumably not a valid directory (it may have been deleted by someone).
                     // In such case, just sleep
@@ -374,6 +375,14 @@ public class DirectoryWatcher extends Thread implements BundleListener
         finally
         {
             fileInstall.lock.readLock().unlock();
+        }
+
+        if (firstRun) {
+            CustomHandler customHandler = getCustomHandler();
+            if (customHandler != null) {
+                customHandler.watcherStarted();
+            }
+            firstRun = false;
         }
     }
 
@@ -1516,7 +1525,21 @@ public class DirectoryWatcher extends Thread implements BundleListener
     }
 
     private CustomHandler getCustomHandler() {
-        return handlerTracker != null ? handlerTracker.getService() : null;
+        if (handlerTracker == null) {
+            return null;
+        }
+        CustomHandler service = handlerTracker.getService();
+        if (service != null) {
+            return service;
+        }
+        log(Logger.LOG_INFO, "Waiting for custom handler for " + watchedDirectory, null);
+        try {
+            return handlerTracker.waitForService(0);
+        } catch (InterruptedException e) {
+            log(Logger.LOG_DEBUG, "Watcher for " + watchedDirectory + " was interrupted while waiting for custom handler"
+                    + poll + " milliseconds for initial directory scan.", e);
+            return null;
+        }
     }
 
     private void registerCustomHandlerHandler(String handlerFilter) {
