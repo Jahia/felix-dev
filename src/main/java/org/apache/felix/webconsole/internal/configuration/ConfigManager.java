@@ -52,7 +52,7 @@ public class ConfigManager extends SimpleWebConsolePlugin implements OsgiManager
     static final String PID_FILTER = "pidFilter"; //$NON-NLS-1$
     static final String PID = "pid"; //$NON-NLS-1$
     static final String FACTORY_PID = "factoryPid"; //$NON-NLS-1$
-    static final String PLACEHOLDER_PID = "[Temporary PID replaced by real PID upon save]"; //$NON-NLS-1$
+    static final String PLACEHOLDER_PID = "__Temporary PID replaced by real PID upon save__"; //$NON-NLS-1$
     static final String REFERER = "referer"; //$NON-NLS-1$
     static final String FACTORY_CREATE = "factoryCreate"; //$NON-NLS-1$
 
