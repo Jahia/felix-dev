@@ -23,6 +23,7 @@
         <groupId>org.apache.felix</groupId>
         <artifactId>felix-parent</artifactId>
         <version>4</version>
+        <relativePath>../pom/pom.xml</relativePath>
     </parent>
 
     <artifactId>org.apache.felix.webconsole</artifactId>
@@ -59,10 +60,10 @@
     </distributionManagement>
 
     <scm>
-        <connection>scm:git:https://github.com/Jahia/felix-dev</connection>
-        <developerConnection>scm:git:git@github.com:Jahia/felix-dev.git</developerConnection>
-        <url>https://github.com/Jahia/felix-dev</url>
-        <tag>org.apache.felix.webconsole-4.3.16-jahia</tag>
+        <connection>scm:git:https://github.com/Jahia/felix</connection>
+        <developerConnection>scm:git:git@github.com:Jahia/felix.git</developerConnection>
+        <url>https://github.com/Jahia/felix</url>
+        <tag>webconsole-4-3-X-jahia</tag>
     </scm>
 
     <build>
