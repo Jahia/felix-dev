@@ -60,10 +60,10 @@
     </distributionManagement>
 
     <scm>
-        <connection>scm:git:https://github.com/Jahia/felix</connection>
-        <developerConnection>scm:git:git@github.com:Jahia/felix.git</developerConnection>
-        <url>https://github.com/Jahia/felix</url>
-        <tag>org.apache.felix.webconsole-4.3.16-jahia3</tag>
+        <connection>scm:git:https://github.com/Jahia/felix-dev</connection>
+        <developerConnection>scm:git:git@github.com:Jahia/felix-dev.git</developerConnection>
+        <url>https://github.com/Jahia/felix-dev</url>
+        <tag>org.apache.felix.webconsole-4.3.16</tag>
     </scm>
 
     <build>
