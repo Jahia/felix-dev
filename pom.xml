@@ -46,6 +46,19 @@
         </webconsole.exports>
     </properties>
 
+    <distributionManagement>
+        <repository>
+            <id>jahia-internal-releases</id>
+            <name>3rd Party Releases</name>
+            <url>https://devtools.jahia.com/nexus/content/repositories/thirdparty-releases</url>
+        </repository>
+        <snapshotRepository>
+            <id>jahia-internal-snapshots</id>
+            <name>3rd Party Snapshots</name>
+            <url>https://devtools.jahia.com/nexus/content/repositories/thirdparty-snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <scm>
         <connection>scm:git:https://github.com/Jahia/felix</connection>
         <developerConnection>scm:git:git@github.com:Jahia/felix.git</developerConnection>
