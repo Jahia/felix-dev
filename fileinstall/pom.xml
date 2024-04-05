@@ -32,10 +32,10 @@
   <version>3.7.4-jahia1-SNAPSHOT</version>
   <artifactId>org.apache.felix.fileinstall</artifactId>
   <scm>
-    <connection>scm:git:https://github.com/Jahia/felix</connection>
-    <developerConnection>scm:git:git@github.com:Jahia/felix.git</developerConnection>
+    <connection>scm:git:https://github.com/Jahia/felix-dev</connection>
+    <developerConnection>scm:git:git@github.com:Jahia/felix-dev.git</developerConnection>
     <url>scm:svn:https://github.com/Jahia/felix-dev</url>
-    <tag>org.apache.felix.fileinstall-3.6.4-jahia</tag>
+    <tag>org.apache.felix.fileinstall-3.7.4-jahia</tag>
   </scm>
   <properties>
     <felix.java.version>8</felix.java.version>
