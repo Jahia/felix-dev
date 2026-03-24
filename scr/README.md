@@ -137,7 +137,7 @@ The `ds.loglevel` property is treated as follows:
 * If the property is any of the strings *debug*, *info*, *warn*, or *error*, the respective log level of `4`, `3`, `2`, or `1` is used
 * Otherwise, unless the `ds.showtrace` or `ds.showerrors` property is set, the default value is assumed
 
-This configuration mechanism is implemented in the [ScrConfiguration](https://github.com/apache/felix-dev/blob/master/scr/src/main/java/org/apache/felix/scr/impl/config/ScrConfigurationImpl.java) and its helper classes.
+This configuration mechanism is implemented in the [ScrConfiguration](https://github.com/apache/felix-dev/blob/main/scr/src/main/java/org/apache/felix/scr/impl/config/ScrConfigurationImpl.java) and its helper classes.
 
 
 ## Non-Standard Component Factory Behaviour
@@ -160,7 +160,7 @@ For details also refer to [FELIX-1416](https://issues.apache.org/jira/browse/FEL
 The OSGi Compendium specification defines an administrative API for Declarative Services through the [Service Component Runtime](https://osgi.org/specification/osgi.cmpn/7.0.0/service.component.html#service.component-service.component.runtime). This bundle implements that service, too.
 
 
-Based on the runtime api, the [Declarative Service Plugin](https://github.com/apache/felix-dev/tree/master/webconsole-plugins/ds) for the [Apache Felix Web Console](http://felix.apache.org/documentation/subprojects/apache-felix-web-console.html) provides support for Declarative Services administration through a browser.
+Based on the runtime api, the [Declarative Service Plugin](https://github.com/apache/felix-dev/tree/main/webconsole-plugins/ds) for the [Apache Felix Web Console](http://felix.apache.org/documentation/subprojects/apache-felix-web-console.html) provides support for Declarative Services administration through a browser.
 
 This bundle itself also has a Felix Shell Command providing easy commands to introspect the states of the registered components.
 

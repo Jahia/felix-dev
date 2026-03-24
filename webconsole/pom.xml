@@ -33,7 +33,7 @@
     <name>Apache Felix Web Management Console</name>
     <description>
         Web Based Management Console for OSGi Frameworks. See
-        https://github.com/apache/felix-dev/tree/master/webconsole
+        https://github.com/apache/felix-dev/tree/main/webconsole
         for more information on this bundle.
     </description>
 
@@ -101,7 +101,7 @@
                             The Apache Software Foundation
                         </Bundle-Vendor>
                         <Bundle-DocURL>
-                            https://github.com/apache/felix-dev/tree/master/webconsole
+                            https://github.com/apache/felix-dev/tree/main/webconsole
                         </Bundle-DocURL>
                         <Bundle-Activator>
                             org.apache.felix.webconsole.internal.OsgiManagerActivator

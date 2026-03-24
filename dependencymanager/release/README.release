@@ -95,7 +95,7 @@ https://dist.apache.org/repos/dist/dev/felix/apache-felix-dependencymanager-r<n>
 
 You can use this UNIX script to download the release and verify the signatures:
 
-https://github.com/apache/felix-dev/blob/master/dependencymanager/release/check_staged_release.sh
+https://github.com/apache/felix-dev/blob/main/dependencymanager/release/check_staged_release.sh
 
 Usage:
 
@@ -108,7 +108,7 @@ of http://repository.apache.org/content/repositories.
 
 To rebuild the DM binaries from the source, jdk8 must be used, and you can refer to:
 
-https://github.com/apache/felix-dev/blob/master/dependencymanager/release/resources/src/README.src
+https://github.com/apache/felix-dev/blob/main/dependencymanager/release/resources/src/README.src
 
 Please cast your votes to approve this release:
 

@@ -6,9 +6,9 @@ This is an implementation of the [R8.1 Whiteboard Specification for Jakarta Serv
   * Standard OSGi Http Whiteboard implementation
   * Run either with Jetty (version 11 or 12) bundle or inside your own application server using the servlet bridge
     * [Felix HTTP Jetty 12](https://mvnrepository.com/artifact/org.apache.felix/org.apache.felix.http.jetty12) is the preferred bundle of choice as it supports JakartaEE10 with the `jakarta` namespace.
-      * [Jetty WebSocket support](https://github.com/apache/felix-dev/pull/310), see example code [here](https://github.com/apache/felix-dev/blob/master/http/samples/whiteboard/src/main/java/org/apache/felix/http/samples/whiteboard/TestWebSocketServlet.java).
+      * [Jetty WebSocket support](https://github.com/apache/felix-dev/pull/310), see example code [here](https://github.com/apache/felix-dev/blob/main/http/samples/whiteboard/src/main/java/org/apache/felix/http/samples/whiteboard/TestWebSocketServlet.java).
     * [Felix HTTP Jetty 11](https://mvnrepository.com/artifact/org.apache.felix/org.apache.felix.http.jetty) is the predecessor of the Jetty 12 bundle, which shipped with [Jetty 9.4.x](https://mvnrepository.com/artifact/org.apache.felix/org.apache.felix.http.jetty/4.2.26) in the 4.x range (JavaEE8), [Jetty 11.x](https://mvnrepository.com/artifact/org.apache.felix/org.apache.felix.http.jetty/5.1.10) in the 5.x range (JakartaEE9).
-      * [Jetty WebSocket support](https://github.com/apache/felix-dev/pull/309), see example code [here](https://github.com/apache/felix-dev/blob/master/http/samples/whiteboard/src/main/java/org/apache/felix/http/samples/whiteboard/TestWebSocketServlet.java).
+      * [Jetty WebSocket support](https://github.com/apache/felix-dev/pull/309), see example code [here](https://github.com/apache/felix-dev/blob/main/http/samples/whiteboard/src/main/java/org/apache/felix/http/samples/whiteboard/TestWebSocketServlet.java).
   * Correctly versioned Servlet API.
 
 ## Installing 
@@ -66,7 +66,7 @@ Deploying the following set of bundles would be one way to enable the ServiceLoa
 
 ### Jetty 12 bundle
 For the Jetty 12 bundle, start the following set of bundles _before_ the Jetty 12 bundle, but after the beforementioned ServiceLoader bundles (the order is important and can be configured in `felix.auto.start.1`). 
-The Jetty version should correspond with the version used in the [Jetty 12 bundle](https://github.com/apache/felix-dev/blob/master/http/jetty12/pom.xml#L44).
+The Jetty version should correspond with the version used in the [Jetty 12 bundle](https://github.com/apache/felix-dev/blob/main/http/jetty12/pom.xml#L44).
 
 * [`jetty-alpn-server-${jetty.version}`](https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-alpn-server)
 * [`jetty-alpn-java-server-${jetty.version}`](https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-alpn-java-server)
@@ -186,7 +186,7 @@ public class HelloWorld extends HttpServlet {
 To register a servlet and map it to a URI, you need to retrieve the `HttpService` and call its `registerServlet` method.
 For this example, a `ServiceTracker` is used to ensure that the registration occurs when a `HttpService` actually is
 available, and a deregistration occurs when the `HttpService` becomes unavailable. Alternatively, you can use more
-high-level dependency management libraries, like [Declarative Services](https://github.com/apache/felix-dev/tree/master/scr), [Felix Dependency Manager](https://felix.apache.org/documentation/subprojects/apache-felix-dependency-manager.html), or Felix HTTP
+high-level dependency management libraries, like [Declarative Services](https://github.com/apache/felix-dev/tree/main/scr), [Felix Dependency Manager](https://felix.apache.org/documentation/subprojects/apache-felix-dependency-manager.html), or Felix HTTP
 whiteboard service (see below).
 
 ```java
@@ -345,13 +345,13 @@ The servlet bridge is used if you want to use the HTTP service inside a WAR depl
 little setup is needed for this to work:
 
   1. deploy `org.apache.felix.http.proxy` jar file inside the web application (`WEB-INF/lib`);
-  2. in a startup listener (like `ServletContextListener`) set the BundleContext as a servlet context attribute (see [example](https://github.com/apache/felix-dev/blob/master/http/samples/bridge/src/main/java/org/apache/felix/http/samples/bridge/StartupListener.java);
-  3. define `org.apache.felix.http.proxy.ProxyServlet` inside your `web.xml` and register it to serve on all requests `/*` (see [example](https://github.com/apache/felix-dev/blob/master/http/samples/bridge/src/main/webapp/WEB-INF/web.xml);
-  4. define `org.apache.felix.http.proxy.ProxyListener` as a `<listener>` in your `web.xml` to allow HTTP session related events to be forwarded (see the section of Servlet API Event forwarding below and [example](https://github.com/apache/felix-dev/blob/master/http/samples/bridge/src/main/webapp/WEB-INF/web.xml);
+  2. in a startup listener (like `ServletContextListener`) set the BundleContext as a servlet context attribute (see [example](https://github.com/apache/felix-dev/blob/main/http/samples/bridge/src/main/java/org/apache/felix/http/samples/bridge/StartupListener.java);
+  3. define `org.apache.felix.http.proxy.ProxyServlet` inside your `web.xml` and register it to serve on all requests `/*` (see [example](https://github.com/apache/felix-dev/blob/main/http/samples/bridge/src/main/webapp/WEB-INF/web.xml);
+  4. define `org.apache.felix.http.proxy.ProxyListener` as a `<listener>` in your `web.xml` to allow HTTP session related events to be forwarded (see the section of Servlet API Event forwarding below and [example](https://github.com/apache/felix-dev/blob/main/http/samples/bridge/src/main/webapp/WEB-INF/web.xml);
   5. be sure to add `javax.servlet;javax.servlet.http;version=2.6` to OSGi system packages (`org.osgi.framework.system.packages`);
   6. deploy `org.apache.felix.http.bridge` (or `org.apache.felix.http.bundle`) inside the OSGi framework.
 
-A detailed example can be found [here](https://github.com/apache/felix-dev/blob/master/http/samples/bridge).
+A detailed example can be found [here](https://github.com/apache/felix-dev/blob/main/http/samples/bridge).
 
 
 ## Using the SSL filter
@@ -385,7 +385,7 @@ non-standard request headers are used for this:
 
 The service can both be configured using OSGi environment properties and using Configuration Admin. The service PID for
 this service is `"org.apache.felix.http"`. If you use both methods, Configuration Admin takes precedence. The following
-properties can be used (some legacy property names still exist but are not documented here on purpose). As properties might change over time, the actual list of properties can be found [here for the Jetty 12 bundle](https://github.com/apache/felix-dev/blob/master/http/jetty12/src/main/java/org/apache/felix/http/jetty/internal/JettyConfig.java) and [here for the Jetty 11 bundle](https://github.com/apache/felix-dev/blob/master/http/jetty/src/main/java/org/apache/felix/http/jetty/internal/JettyConfig.java).
+properties can be used (some legacy property names still exist but are not documented here on purpose). As properties might change over time, the actual list of properties can be found [here for the Jetty 12 bundle](https://github.com/apache/felix-dev/blob/main/http/jetty12/src/main/java/org/apache/felix/http/jetty/internal/JettyConfig.java) and [here for the Jetty 11 bundle](https://github.com/apache/felix-dev/blob/main/http/jetty/src/main/java/org/apache/felix/http/jetty/internal/JettyConfig.java).
 
 | Property                                                 | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 |----------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -526,8 +526,8 @@ the provided `HttpContext` instance:
 
 A set of simple examples illustrating the various features are available.
 
-  * Whiteboard sample: <https://github.com/apache/felix-dev/tree/master/http/samples/whiteboard>
-  * Servlet bridge sample: <https://github.com/apache/felix-dev/tree/master/http/samples/bridge/>
+  * Whiteboard sample: <https://github.com/apache/felix-dev/tree/main/http/samples/whiteboard>
+  * Servlet bridge sample: <https://github.com/apache/felix-dev/tree/main/http/samples/bridge/>
 
 ## Maven Artifacts
 

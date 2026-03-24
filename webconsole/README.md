@@ -9,7 +9,7 @@ As the Web Console is a web application, it requires some APIs and services to b
 The required dependencies are:
 
 - OSGi Framework R7 : For example the [Apache Felix Framework](https://felix.apache.org/documentation/subprojects/apache-felix-framework.html)
-- OSGi Http Servlet WHiteboard : This includes support for the Jakarta Servlet API 5. For exmaple the [Apache Felix Http Implementation](https://github.com/apache/felix-dev/tree/master/http)
+- OSGi Http Servlet WHiteboard : This includes support for the Jakarta Servlet API 5. For exmaple the [Apache Felix Http Implementation](https://github.com/apache/felix-dev/tree/main/http)
 - SLF4j Logging API 1.7 (or higher)
 - OWASP Encoder 1.2 (or higher)
 - [Apache Felix Inventory](https://felix.apache.org/documentation/subprojects/apache-felix-inventory.html) 2.0.0 (or higher)
@@ -91,7 +91,7 @@ The web console includes some plugins which will be enabled if additional depend
 
 - OSGi Log Service : A plugin to show the logging output
 
-Additional plugins can be found in the [plugins directory](https://github.com/apache/felix-dev/tree/master/webconsole-plugins).
+Additional plugins can be found in the [plugins directory](https://github.com/apache/felix-dev/tree/main/webconsole-plugins).
 
 ### OSGi Configuration Admin Service
 
