@@ -163,7 +163,12 @@ public class ConfigInstaller implements ArtifactInstaller, ConfigurationListener
                     for (Configuration config : configs) {
                         Dictionary<?, ?> dict = config.getProperties();
                         String fileName = dict != null ? (String) dict.get(DirectoryWatcher.FILENAME) : null;
-                        if (fileName != null) {
+                        // This installer owns .cfg and .config only. Another ArtifactInstaller can record
+                        // felix.fileinstall.filename for a format of its own, and a pid adopted here takes its
+                        // file with it on CM_DELETED. canHandle reads the file name only, so new File is enough
+                        // and fromConfigKey is not: URI.create throws on a value that is not a URI, and the
+                        // catch around this loop would then leave pidToFile half-built.
+                        if (fileName != null && canHandle(new File(fileName))) {
                             pidToFile.put(config.getPid(), fileName);
                         }
                     }

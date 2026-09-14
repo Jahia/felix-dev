@@ -308,6 +308,63 @@ public class ConfigInstallerTest extends TestCase {
         ci.doConfigurationEvent( new ConfigurationEvent(sr , ConfigurationEvent.CM_DELETED, null, pid ) );
     }
 
+    /**
+     * init() adopts a configuration into pidToFile, and CM_DELETED then deletes the file that map
+     * names. A configuration written by another ArtifactInstaller also records
+     * felix.fileinstall.filename, so without a canHandle filter this installer deletes a file of a
+     * format it does not handle.
+     */
+    public void testInitDoesNotAdoptAFileOfAnotherInstallersFormat() throws Exception
+    {
+        File file = File.createTempFile("test", ".yml");
+        assertFalse("A .yml file is not handled by this installer", canHandleAfterInit(file));
+        assertTrue("The file of another installer survives CM_DELETED", file.isFile());
+        file.delete();
+    }
+
+    public void testInitStillAdoptsAFileOfItsOwnFormat() throws Exception
+    {
+        File file = File.createTempFile("test", ".cfg");
+        assertTrue("A .cfg file is handled by this installer", canHandleAfterInit(file));
+        assertFalse("The file of this installer is deleted on CM_DELETED", file.isFile());
+    }
+
+    /**
+     * Run init() over a single configuration that records the given file, then raise CM_DELETED for
+     * its pid.
+     *
+     * @return true when init() adopted the configuration, which is what makes CM_DELETED delete the file.
+     */
+    private boolean canHandleAfterInit(File file) throws Exception
+    {
+        String pid = "test";
+        Dictionary<String, Object> props = new Hashtable<>();
+        props.put(DirectoryWatcher.FILENAME, file.toURI().toString());
+
+        EasyMock.expect(mockBundleContext.getBundle()).andReturn(mockBundle).anyTimes();
+        EasyMock.expect(mockBundle.loadClass(ConfigurationAttribute.class.getName()))
+                .andReturn((Class) ConfigurationAttribute.class).anyTimes();
+        EasyMock.expect(mockBundleContext.getProperty((String) EasyMock.anyObject()))
+                .andReturn(null).anyTimes();
+        EasyMock.expect(mockBundleContext.registerService((String[]) EasyMock.anyObject(),
+                                                          EasyMock.anyObject(),
+                                                          (Dictionary<String, ?>) EasyMock.anyObject()))
+                .andReturn(null);
+        EasyMock.expect(mockConfigurationAdmin.listConfigurations(null))
+                .andReturn(new Configuration[] { mockConfiguration });
+        EasyMock.expect(mockConfiguration.getProperties()).andReturn(props).anyTimes();
+        EasyMock.expect(mockConfiguration.getPid()).andReturn(pid).anyTimes();
+
+        ServiceReference<ConfigurationAdmin> sr = EasyMock.createMock(ServiceReference.class);
+        EasyMock.replay(mockConfiguration, mockConfigurationAdmin, mockBundleContext, mockBundle, sr);
+
+        ConfigInstaller ci = new ConfigInstaller(mockBundleContext, mockConfigurationAdmin, new FileInstall());
+        ci.init();
+        boolean adopted = file.isFile();
+        ci.doConfigurationEvent(new ConfigurationEvent(sr, ConfigurationEvent.CM_DELETED, null, pid));
+        return adopted && !file.isFile();
+    }
+
     public void testUseExistingConfigWithFileinstallFilenameAndObserveCMDeleted() throws Exception
     {
         File file = File.createTempFile("test", ".config");
