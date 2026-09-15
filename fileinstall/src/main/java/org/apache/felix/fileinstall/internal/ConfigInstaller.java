@@ -244,10 +244,13 @@ public class ConfigInstaller implements ArtifactInstaller, ConfigurationListener
             try
             {
                 Configuration[] configurations = getConfigurationAdmin().listConfigurations("(service.pid=" + escapeFilterValue(configurationEvent.getPid()) + ")");
-                if (null == configurations) {
-                    return;
-                }
-                if (configurations.length < 1) {
+                if (null == configurations || configurations.length < 1) {
+                    // listConfigurations hides a configuration the caller may not see, which
+                    // getConfiguration did not. A configuration bound to another bundle's location
+                    // therefore stops being written back once a SecurityManager runs. See OSGi
+                    // Configuration Admin 104.13.3.
+                    Util.log(context, Logger.LOG_DEBUG, "No configuration answers the pid "
+                            + configurationEvent.getPid() + ", so nothing is written back", null);
                     return;
                 }
                 Configuration config = configurations[0];
@@ -314,8 +317,8 @@ public class ConfigInstaller implements ArtifactInstaller, ConfigurationListener
             try {
                 String fileName = pidToFile.remove(configurationEvent.getPid());
                 File file = fileName != null ? fromConfigKey(fileName) : null;
-                // Deleting the file is the act that loses data, so ownership is checked here too.
-                // Every writer of pidToFile filters already, and this check covers the next one.
+                // Deleting the file loses data, so this site checks ownership as well.
+                // Every writer of pidToFile filters already, and this check covers the next writer.
                 if (file != null && file.isFile() && canHandle(file)) {
                     if (!file.delete()) {
                         throw new IOException("Unable to delete file: " + file);
@@ -672,10 +675,15 @@ public class ConfigInstaller implements ArtifactInstaller, ConfigurationListener
     }
 
     private String escapeFilterValue(String s) {
-        return s.replaceAll("[(]", "\\\\(").
-                replaceAll("[)]", "\\\\)").
-                replaceAll("[=]", "\\\\=").
-                replaceAll("[\\*]", "\\\\*");
+        // The backslash comes first, so the escapes added below are not escaped a second time.
+        // String.replace matches a literal, so this method no longer compiles four patterns per
+        // call. doConfigurationEvent calls it for every event, where findExistingConfiguration
+        // called it once per file install.
+        return s.replace("\\", "\\\\")
+                .replace("(", "\\(")
+                .replace(")", "\\)")
+                .replace("=", "\\=")
+                .replace("*", "\\*");
     }
 
 }
