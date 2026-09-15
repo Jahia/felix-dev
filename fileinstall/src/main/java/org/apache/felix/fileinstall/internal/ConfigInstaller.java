@@ -163,11 +163,12 @@ public class ConfigInstaller implements ArtifactInstaller, ConfigurationListener
                     for (Configuration config : configs) {
                         Dictionary<?, ?> dict = config.getProperties();
                         String fileName = dict != null ? (String) dict.get(DirectoryWatcher.FILENAME) : null;
-                        // This installer owns .cfg and .config only. Another ArtifactInstaller can record
-                        // felix.fileinstall.filename for a format of its own, and a pid adopted here takes its
-                        // file with it on CM_DELETED. canHandle reads the file name only, so new File is enough
-                        // and fromConfigKey is not: URI.create throws on a value that is not a URI, and the
-                        // catch around this loop would then leave pidToFile half-built.
+                        // This installer owns .cfg and .config files, and no other format.
+                        // Another ArtifactInstaller records felix.fileinstall.filename for a format of its own.
+                        // A pid adopted here is deleted with its file on CM_DELETED, so the filter runs first.
+                        // canHandle reads the file name only, so new File is enough here.
+                        // fromConfigKey would call URI.create, which throws on a value that is not a URI.
+                        // The catch around this loop would then leave pidToFile half-built.
                         if (fileName != null && canHandle(new File(fileName))) {
                             pidToFile.put(config.getPid(), fileName);
                         }
@@ -242,7 +243,7 @@ public class ConfigInstaller implements ArtifactInstaller, ConfigurationListener
         {
             try
             {
-                Configuration[] configurations = getConfigurationAdmin().listConfigurations("(service.pid=" + configurationEvent.getPid() + ")");
+                Configuration[] configurations = getConfigurationAdmin().listConfigurations("(service.pid=" + escapeFilterValue(configurationEvent.getPid()) + ")");
                 if (null == configurations) {
                     return;
                 }
@@ -313,7 +314,9 @@ public class ConfigInstaller implements ArtifactInstaller, ConfigurationListener
             try {
                 String fileName = pidToFile.remove(configurationEvent.getPid());
                 File file = fileName != null ? fromConfigKey(fileName) : null;
-                if (file != null && file.isFile()) {
+                // Deleting the file is the act that loses data, so ownership is checked here too.
+                // Every writer of pidToFile filters already, and this check covers the next one.
+                if (file != null && file.isFile() && canHandle(file)) {
                     if (!file.delete()) {
                         throw new IOException("Unable to delete file: " + file);
                     }

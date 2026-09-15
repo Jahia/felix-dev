@@ -282,8 +282,6 @@ public class ConfigInstallerTest extends TestCase {
     {
         String pid = "test";
 
-        Capture<Dictionary<String, Object>> props = new Capture<>();
-
         EasyMock.expect(mockBundleContext.getBundle()).andReturn(mockBundle).anyTimes();
         EasyMock.expect(mockBundle.loadClass(ConfigurationAttribute.class.getName())).andReturn((Class)ConfigurationAttribute.class).anyTimes();
         EasyMock.expect(mockConfiguration.getProperties())
@@ -291,14 +289,10 @@ public class ConfigInstallerTest extends TestCase {
         EasyMock.expect(mockBundleContext.getProperty((String) EasyMock.anyObject()))
                 .andReturn(null)
                 .anyTimes();
-        EasyMock.expect(mockConfigurationAdmin.listConfigurations((String) EasyMock.anyObject()))
-                .andReturn(null);
-        EasyMock.expect(mockConfigurationAdmin.getConfiguration(pid, "?"))
-                .andReturn(mockConfiguration);
+        EasyMock.expect(mockConfigurationAdmin.listConfigurations("(service.pid=" + pid + ")"))
+                .andReturn(new Configuration[] { mockConfiguration });
 
         ServiceReference<ConfigurationAdmin> sr = EasyMock.createMock(ServiceReference.class);
-        mockConfiguration.update(EasyMock.capture(props));
-        EasyMock.expectLastCall();
 
         EasyMock.replay(mockConfiguration, mockConfigurationAdmin, mockBundleContext, mockBundle, sr);
 
@@ -306,36 +300,50 @@ public class ConfigInstallerTest extends TestCase {
 
         ci.doConfigurationEvent( new ConfigurationEvent(sr , ConfigurationEvent.CM_UPDATED, null, pid ) );
         ci.doConfigurationEvent( new ConfigurationEvent(sr , ConfigurationEvent.CM_DELETED, null, pid ) );
+
+        // A configuration that records no file name is written to none, and it deletes none.
+        // Without this call the test passes on an early return, and the expectations above stay unused.
+        EasyMock.verify(mockConfiguration, mockConfigurationAdmin);
     }
 
     /**
-     * init() adopts a configuration into pidToFile, and CM_DELETED then deletes the file that map
-     * names. A configuration written by another ArtifactInstaller also records
-     * felix.fileinstall.filename, so without a canHandle filter this installer deletes a file of a
-     * format it does not handle.
+     * init() adopts a configuration into pidToFile, and CM_DELETED deletes the file that map names.
+     * A configuration written by another ArtifactInstaller also records felix.fileinstall.filename.
+     * Without a canHandle filter this installer therefore deletes a file it does not handle.
      */
-    public void testInitDoesNotAdoptAFileOfAnotherInstallersFormat() throws Exception
+    public void testCmDeletedKeepsAFileOfAnotherInstallersFormat() throws Exception
     {
         File file = File.createTempFile("test", ".yml");
-        assertFalse("A .yml file is not handled by this installer", canHandleAfterInit(file));
-        assertTrue("The file of another installer survives CM_DELETED", file.isFile());
-        file.delete();
+        try
+        {
+            deleteTheConfigurationThatRecords(file);
+            assertTrue("A .yml file belongs to another installer, so CM_DELETED keeps it", file.isFile());
+        }
+        finally
+        {
+            file.delete();
+        }
     }
 
-    public void testInitStillAdoptsAFileOfItsOwnFormat() throws Exception
+    public void testCmDeletedStillRemovesAFileOfItsOwnFormat() throws Exception
     {
         File file = File.createTempFile("test", ".cfg");
-        assertTrue("A .cfg file is handled by this installer", canHandleAfterInit(file));
-        assertFalse("The file of this installer is deleted on CM_DELETED", file.isFile());
+        try
+        {
+            deleteTheConfigurationThatRecords(file);
+            assertFalse("A .cfg file belongs to this installer, so CM_DELETED removes it", file.isFile());
+        }
+        finally
+        {
+            file.delete();
+        }
     }
 
     /**
-     * Run init() over a single configuration that records the given file, then raise CM_DELETED for
-     * its pid.
-     *
-     * @return true when init() adopted the configuration, which is what makes CM_DELETED delete the file.
+     * Run init() over one configuration that records the given file, then raise CM_DELETED for its pid.
+     * The caller asserts on the file, because whether the file survives is the whole behaviour.
      */
-    private boolean canHandleAfterInit(File file) throws Exception
+    private void deleteTheConfigurationThatRecords(File file) throws Exception
     {
         String pid = "test";
         Dictionary<String, Object> props = new Hashtable<>();
@@ -360,9 +368,11 @@ public class ConfigInstallerTest extends TestCase {
 
         ConfigInstaller ci = new ConfigInstaller(mockBundleContext, mockConfigurationAdmin, new FileInstall());
         ci.init();
-        boolean adopted = file.isFile();
         ci.doConfigurationEvent(new ConfigurationEvent(sr, ConfigurationEvent.CM_DELETED, null, pid));
-        return adopted && !file.isFile();
+
+        // init() must have read the configurations. Without this call the test passes even when
+        // init() throws before its loop, because ConfigInstaller logs that failure and swallows it.
+        EasyMock.verify(mockConfigurationAdmin, mockBundleContext);
     }
 
     public void testUseExistingConfigWithFileinstallFilenameAndObserveCMDeleted() throws Exception
