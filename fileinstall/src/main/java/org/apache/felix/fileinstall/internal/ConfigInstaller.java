@@ -163,7 +163,13 @@ public class ConfigInstaller implements ArtifactInstaller, ConfigurationListener
                     for (Configuration config : configs) {
                         Dictionary<?, ?> dict = config.getProperties();
                         String fileName = dict != null ? (String) dict.get(DirectoryWatcher.FILENAME) : null;
-                        if (fileName != null) {
+                        // This installer owns .cfg and .config files, and no other format.
+                        // Another ArtifactInstaller records felix.fileinstall.filename for a format of its own.
+                        // A pid adopted here is deleted with its file on CM_DELETED, so the filter runs first.
+                        // canHandle reads the file name only, so new File is enough here.
+                        // fromConfigKey would call URI.create, which throws on a value that is not a URI.
+                        // The catch around this loop would then leave pidToFile half-built.
+                        if (fileName != null && canHandle(new File(fileName))) {
                             pidToFile.put(config.getPid(), fileName);
                         }
                     }
@@ -237,9 +243,18 @@ public class ConfigInstaller implements ArtifactInstaller, ConfigurationListener
         {
             try
             {
-                Configuration config = getConfigurationAdmin().getConfiguration(
-                                            configurationEvent.getPid(),
-                                            "?");
+                Configuration[] configurations = getConfigurationAdmin().listConfigurations("(service.pid=" + escapeFilterValue(configurationEvent.getPid()) + ")");
+                if (null == configurations || configurations.length < 1) {
+                    // listConfigurations hides a configuration the caller may not see, which
+                    // getConfiguration did not. A configuration bound to another bundle's location
+                    // therefore stops being written back once a SecurityManager runs. See OSGi
+                    // Configuration Admin 104.13.3.
+                    Util.log(context, Logger.LOG_DEBUG, "No configuration answers the pid "
+                            + configurationEvent.getPid() + ", so nothing is written back", null);
+                    return;
+                }
+                Configuration config = configurations[0];
+
                 Dictionary<?,?> dict = config.getProperties();
                 String fileName = dict != null ? (String) dict.get( DirectoryWatcher.FILENAME ) : null;
                 File file = fileName != null ? fromConfigKey(fileName) : null;
@@ -302,7 +317,9 @@ public class ConfigInstaller implements ArtifactInstaller, ConfigurationListener
             try {
                 String fileName = pidToFile.remove(configurationEvent.getPid());
                 File file = fileName != null ? fromConfigKey(fileName) : null;
-                if (file != null && file.isFile()) {
+                // Deleting the file loses data, so this site checks ownership as well.
+                // Every writer of pidToFile filters already, and this check covers the next writer.
+                if (file != null && file.isFile() && canHandle(file)) {
                     if (!file.delete()) {
                         throw new IOException("Unable to delete file: " + file);
                     }
@@ -658,10 +675,15 @@ public class ConfigInstaller implements ArtifactInstaller, ConfigurationListener
     }
 
     private String escapeFilterValue(String s) {
-        return s.replaceAll("[(]", "\\\\(").
-                replaceAll("[)]", "\\\\)").
-                replaceAll("[=]", "\\\\=").
-                replaceAll("[\\*]", "\\\\*");
+        // The backslash comes first, so the escapes added below are not escaped a second time.
+        // String.replace matches a literal, so this method no longer compiles four patterns per
+        // call. doConfigurationEvent calls it for every event, where findExistingConfiguration
+        // called it once per file install.
+        return s.replace("\\", "\\\\")
+                .replace("(", "\\(")
+                .replace(")", "\\)")
+                .replace("=", "\\=")
+                .replace("*", "\\*");
     }
 
 }
