@@ -278,6 +278,40 @@ public class ConfigInstallerTest extends TestCase {
         assertFalse("Configuration file should be deleted", file.isFile());
     }
 
+    public void testTheConfigurationEventFilterEscapesAnAsteriskInThePid() throws Exception
+    {
+        assertTheEventFilterFor("my*pid", "(service.pid=my\\*pid)");
+    }
+
+    public void testTheConfigurationEventFilterEscapesABackslashInThePid() throws Exception
+    {
+        assertTheEventFilterFor("my\\pid", "(service.pid=my\\\\pid)");
+    }
+
+    /**
+     * Raise CM_UPDATED for the given pid, and assert the filter the handler builds from it.
+     * An unescaped pid builds a filter that matches other configurations, so ConfigInstaller
+     * writes one of them back to the wrong file. EasyMock fails the call when the filter differs.
+     */
+    private void assertTheEventFilterFor(String pid, String expectedFilter) throws Exception
+    {
+        EasyMock.expect(mockBundleContext.getBundle()).andReturn(mockBundle).anyTimes();
+        EasyMock.expect(mockBundle.loadClass(ConfigurationAttribute.class.getName()))
+                .andReturn((Class) ConfigurationAttribute.class).anyTimes();
+        EasyMock.expect(mockBundleContext.getProperty((String) EasyMock.anyObject()))
+                .andReturn(null).anyTimes();
+        EasyMock.expect(mockConfigurationAdmin.listConfigurations(expectedFilter))
+                .andReturn(null);
+
+        ServiceReference<ConfigurationAdmin> sr = EasyMock.createMock(ServiceReference.class);
+        EasyMock.replay(mockConfiguration, mockConfigurationAdmin, mockBundleContext, mockBundle, sr);
+
+        ConfigInstaller ci = new ConfigInstaller(mockBundleContext, mockConfigurationAdmin, new FileInstall());
+        ci.doConfigurationEvent(new ConfigurationEvent(sr, ConfigurationEvent.CM_UPDATED, null, pid));
+
+        EasyMock.verify(mockConfigurationAdmin);
+    }
+
     public void testUseExistingConfigAndObserveCMDeleted() throws Exception
     {
         String pid = "test";
