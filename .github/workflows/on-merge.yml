@@ -37,13 +37,24 @@ jobs:
           mvn -ntp -B -s .github/maven.settings.xml
           -f ${{ steps.setup.outputs.project-dir }}/pom.xml
           -Dmaven.javadoc.skip=true -Dgpg.skip=true
-          deploy | tee mvn.log
+          deploy
 
       - name: Report where the artifact landed
-        if: success()
         shell: bash
         run: |
-          url="$(grep --text -Eo 'https://[^ ]*\.jar' mvn.log | grep -v -- '-sources' | tail -n1 || true)"
-          if [[ -n "$url" ]]; then
-            echo "::notice title=Snapshot published::$url"
-          fi
+          set -euo pipefail
+          # actions/setup-java sets MAVEN_ARGS=-ntp, which hides every transfer line, so the
+          # location is read from the project rather than from the Maven log.
+          ev() {
+            mvn -q -B -N -s .github/maven.settings.xml \
+              -f '${{ steps.setup.outputs.project-dir }}/pom.xml' \
+              help:evaluate -Dexpression="$1" -DforceStdout
+          }
+          version="$(ev project.version)"
+          case "$version" in
+            *-SNAPSHOT) repository="$(ev project.distributionManagement.snapshotRepository.url)" ;;
+            *)          repository="$(ev project.distributionManagement.repository.url)" ;;
+          esac
+          group="$(ev project.groupId | tr '.' '/')"
+          artifact="$(ev project.artifactId)"
+          echo "::notice title=Snapshot published::${repository%/}/$group/$artifact/$version/"
