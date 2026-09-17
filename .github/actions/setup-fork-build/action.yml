@@ -1,0 +1,79 @@
+name: Set up the fork build
+description: >-
+  Resolve the Maven project that the current Jahia fork branch maintains, then install the JDK
+  and expose the Nexus credentials to Maven.
+
+inputs:
+  branch:
+    description: >-
+      The Jahia fork branch being built. On a pull request this is the base branch, because the
+      base branch is what decides which project the change belongs to.
+    required: true
+  nexus_username:
+    description: Nexus user name.
+    required: true
+  nexus_password:
+    description: Nexus password.
+    required: true
+
+outputs:
+  project-dir:
+    description: The directory that holds the pom.xml to build, relative to the repository root.
+    value: ${{ steps.resolve.outputs.project-dir }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve the project directory
+      id: resolve
+      shell: bash
+      run: |
+        set -euo pipefail
+        branch='${{ inputs.branch }}'
+        override='.github/jahia-fork-project'
+
+        if [[ -f "$override" ]]; then
+          dir="$(head -n1 "$override" | tr -d '[:space:]')"
+        else
+          # A Jahia fork branch is named <artifactId>-<version>-jahia, for example
+          # org.apache.felix.fileinstall-3.7.4-jahia. Drop the version to get the artifactId,
+          # then drop the package prefix to get the directory name used in the monorepo.
+          name="${branch%-jahia}"
+          name="${name%-*}"
+          candidate="${name#org.apache.felix.}"
+          candidate="${candidate#felix.}"
+
+          if [[ -n "$candidate" && -f "$candidate/pom.xml" ]]; then
+            dir="$candidate"
+          elif [[ -f pom.xml ]]; then
+            # Some fork branches were cut at the project directory instead of the monorepo root,
+            # so the project pom.xml is the repository root pom.xml.
+            dir='.'
+          else
+            echo "::error::Found no pom.xml at $candidate/pom.xml and none at the repository root. Write the project directory into $override to build this branch."
+            exit 1
+          fi
+        fi
+
+        if [[ ! -f "$dir/pom.xml" ]]; then
+          echo "::error::The resolved project directory $dir holds no pom.xml."
+          exit 1
+        fi
+
+        echo "project-dir=$dir" >> "$GITHUB_OUTPUT"
+        echo "::notice title=Project built::$branch builds $dir/pom.xml"
+
+    - name: Expose the Nexus credentials to Maven
+      shell: bash
+      run: |
+        echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> "$GITHUB_ENV"
+        echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> "$GITHUB_ENV"
+
+    # Both maintained branches target an old Java level and build with plugins that need a
+    # JDK 8 toolchain. The webconsole build fails on JDK 11.
+    - name: Set up JDK 8
+      uses: actions/setup-java@v4
+      with:
+        java-version: '8'
+        distribution: temurin
+        cache: maven
