@@ -1,0 +1,36 @@
+# Build the project that the pull request's base branch maintains.
+# This workflow publishes nothing.
+name: On code change (PR)
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up the fork build
+        id: setup
+        uses: ./.github/actions/setup-fork-build
+        with:
+          branch: ${{ github.base_ref }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+
+      - name: Build with Maven
+        run: >-
+          mvn -ntp -B -s .github/maven.settings.xml
+          -f ${{ steps.setup.outputs.project-dir }}/pom.xml
+          -Dmaven.javadoc.skip=true -Dgpg.skip=true
+          install
