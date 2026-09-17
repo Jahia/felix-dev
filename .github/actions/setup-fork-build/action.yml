@@ -72,7 +72,7 @@ runs:
     # Both maintained branches target an old Java level and build with plugins that need a
     # JDK 8 toolchain. The webconsole build fails on JDK 11.
     - name: Set up JDK 8
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         java-version: '8'
         distribution: temurin
