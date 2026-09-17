@@ -67,7 +67,10 @@ public class ConfigInstaller implements ArtifactInstaller, ConfigurationListener
     private final BundleContext context;
     private final ConfigurationAdmin configAdmin;
     private final FileInstall fileInstall;
-    private final Map<String, String> pidToFile = new HashMap<>();
+    // Package-private, because ConfigInstallerTest asserts what init() adopts. Two sites filter
+    // this map, and either one keeps a foreign file alive, so a test that reads the file cannot
+    // fail on one site alone.
+    final Map<String, String> pidToFile = new HashMap<>();
     private final Method getFactoryConfigurationMethod;
     private final Method addAttributesMethod;
     private final Method getAttributesMethod;
