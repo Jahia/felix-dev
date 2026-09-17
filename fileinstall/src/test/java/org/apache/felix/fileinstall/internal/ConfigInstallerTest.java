@@ -503,7 +503,6 @@ public class ConfigInstallerTest extends TestCase {
         }
         String pid = "test";
 
-        Capture<Dictionary<String, Object>> propsCapture = new Capture<>();
         Dictionary<String, Object> props = new Hashtable<>();
         props.put(DirectoryWatcher.FILENAME, file.toURI().toString());
 
@@ -516,14 +515,10 @@ public class ConfigInstallerTest extends TestCase {
                 .anyTimes();
         EasyMock.expect(mockConfigurationAdmin.listConfigurations("(service.pid=" + pid + ")"))
                 .andReturn(new Configuration[] { mockConfiguration });
-        EasyMock.expect(mockConfigurationAdmin.getConfiguration(pid, "?"))
-                .andReturn(mockConfiguration);
         EasyMock.expect(mockConfiguration.getPid())
                 .andReturn(pid);
 
         ServiceReference<ConfigurationAdmin> sr = EasyMock.createMock(ServiceReference.class);
-        mockConfiguration.update(EasyMock.capture(propsCapture));
-        EasyMock.expectLastCall();
 
         EasyMock.replay(mockConfiguration, mockConfigurationAdmin, mockBundleContext, mockBundle, sr);
 
@@ -533,6 +528,10 @@ public class ConfigInstallerTest extends TestCase {
         ci.doConfigurationEvent( new ConfigurationEvent(sr , ConfigurationEvent.CM_DELETED, null, pid ) );
 
         assertFalse("Configuration file should be deleted", file.isFile());
+
+        // The CM_UPDATED path writes the file and calls no method on the configuration, so an
+        // expectation this test does not consume describes nothing the code still does.
+        EasyMock.verify(mockConfiguration, mockConfigurationAdmin, mockBundleContext);
     }
 
     public void testDoConfigurationEventSavesUpdatedConfigurationWhenUsingCachingPersistence() throws Exception
