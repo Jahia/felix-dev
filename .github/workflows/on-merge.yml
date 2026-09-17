@@ -1,0 +1,49 @@
+# Build and publish the snapshot of the project that this Jahia fork branch maintains.
+# The monorepo holds many projects, so only the project named by the branch is published.
+name: On merge to a Jahia fork branch
+
+on:
+  push:
+    branches:
+      - '**-jahia'
+    tags-ignore:
+      - '**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Build and publish the snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up the fork build
+        id: setup
+        uses: ./.github/actions/setup-fork-build
+        with:
+          branch: ${{ github.ref_name }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+
+      - name: Deploy with Maven
+        shell: bash
+        run: >-
+          mvn -ntp -B -s .github/maven.settings.xml
+          -f ${{ steps.setup.outputs.project-dir }}/pom.xml
+          -Dmaven.javadoc.skip=true -Dgpg.skip=true
+          deploy | tee mvn.log
+
+      - name: Report where the artifact landed
+        if: success()
+        shell: bash
+        run: |
+          url="$(grep --text -Eo 'https://[^ ]*\.jar' mvn.log | grep -v -- '-sources' | tail -n1 || true)"
+          if [[ -n "$url" ]]; then
+            echo "::notice title=Snapshot published::$url"
+          fi

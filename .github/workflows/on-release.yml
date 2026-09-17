@@ -1,0 +1,110 @@
+# Release the project that a Jahia fork branch maintains, from a GitHub pre-release.
+#
+# To release, create a GitHub pre-release whose target is the fork branch and whose tag follows
+# the fork convention <artifactId>-<version>, for example
+# org.apache.felix.fileinstall-3.7.4-jahia2. This workflow deletes the tag GitHub created,
+# because the Maven release plugin creates the real one on the release commit.
+name: On release
+
+on:
+  release:
+    types: [prereleased]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.release.target_commitish }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.release.target_commitish }}
+          ssh-key: ${{ secrets.GH_SSH_PRIVATE_KEY_JAHIACI }}
+
+      # The release plugin pushes the release commit and the tag back to the branch.
+      - uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.GH_SSH_PRIVATE_KEY_JAHIACI }}
+
+      - name: Set up the fork build
+        id: setup
+        uses: ./.github/actions/setup-fork-build
+        with:
+          branch: ${{ github.event.release.target_commitish }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+
+      - name: Delete the tag GitHub created for the release
+        shell: bash
+        run: |
+          git config user.email 'jahia-ci@jahia.com'
+          git config user.name 'Jahia CI'
+          git fetch --all --tags
+          git tag --delete '${{ github.event.release.tag_name }}' || true
+          git push origin ':refs/tags/${{ github.event.release.tag_name }}'
+
+      - name: Compute the release and the next development version
+        id: versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='${{ github.event.release.tag_name }}'
+          pom='${{ steps.setup.outputs.project-dir }}/pom.xml'
+
+          artifact_id="$(mvn -q -B -ntp -N -f "$pom" \
+            help:evaluate -Dexpression=project.artifactId -DforceStdout)"
+
+          # The tag is the artifactId followed by the version, so removing that prefix leaves
+          # the version, for example 3.7.4-jahia2.
+          case "$tag" in
+            "$artifact_id"-*) release="${tag#"$artifact_id"-}" ;;
+            *)
+              echo "::error::The tag $tag does not start with the artifactId $artifact_id. Name the tag $artifact_id-<version>."
+              exit 1
+              ;;
+          esac
+
+          # A fork version ends in -jahia<N>, so the next development version raises N by one.
+          case "$release" in
+            *-jahia[0-9]*) ;;
+            *)
+              echo "::error::The version $release does not end in -jahia<N>, so the next development version cannot be computed."
+              exit 1
+              ;;
+          esac
+          base="${release%-jahia*}"
+          revision="${release##*-jahia}"
+          next="${base}-jahia$((revision + 1))-SNAPSHOT"
+
+          {
+            echo "artifact-id=$artifact_id"
+            echo "release=$release"
+            echo "next=$next"
+          } >> "$GITHUB_OUTPUT"
+          echo "::notice title=Release plan::$artifact_id $release, then $next on ${{ github.event.release.target_commitish }}"
+
+      - name: Prepare the release
+        shell: bash
+        run: >-
+          mvn -ntp -B -s .github/maven.settings.xml
+          -f ${{ steps.setup.outputs.project-dir }}/pom.xml
+          -DdryRun=false -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true -DskipLocalStaging=true
+          -Dtag='${{ github.event.release.tag_name }}'
+          -DreleaseVersion='${{ steps.versions.outputs.release }}'
+          -DdevelopmentVersion='${{ steps.versions.outputs.next }}'
+          -DscmCommentPrefix='[skip ci] [maven-release-plugin] '
+          release:prepare
+
+      - name: Perform the release
+        shell: bash
+        run: >-
+          mvn -ntp -B -s .github/maven.settings.xml
+          -f ${{ steps.setup.outputs.project-dir }}/pom.xml
+          -DdryRun=false -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true -DskipLocalStaging=true
+          release:perform
